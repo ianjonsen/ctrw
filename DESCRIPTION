@@ -6,7 +6,7 @@ Authors@R: c(
     person("Ian", "Jonsen", email = "ian.jonsen@mq.edu.au", 
     role = c("aut", "cre")),
     person("Toby", "Patterson", email = "toby.patterson@csiro.au",
-    role = "ctb")
+    role = "ctb"))
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
