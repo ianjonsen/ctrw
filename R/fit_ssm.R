@@ -62,12 +62,10 @@ fit_ssm <-
            verbose = FALSE,
            span = 0.1) {
 
-#    compile("~/Dropbox/collab/imos/argos/src/rw_argos_2.cpp")
-#    dyn.load(dynlib("~/Dropbox/collab/imos/argos/src/rw_argos_2"))
     optim <- match.arg(optim)
     model <- match.arg(model)
 
-    if(!model %in% c("KF","LS")) stop("Observation model can only be `KF`` or `LS`")
+    if(!model %in% c("KF","LS")) stop("Observation model can only be `KF` or `LS`")
     if(!class(d$date)[1] %in% c("POSIXct","POSIXt"))
       stop("Dates must be in POSIX format, consider using the lubridate package to convert")
     if(!all.equal(d$date, d$date[order(d$date)]))

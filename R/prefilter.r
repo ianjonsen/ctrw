@@ -7,7 +7,7 @@
 ##'
 ##' @export
 
-prefilter <- function(d, time.gap = NULL) {
+prefilter <- function(d, min.dist = 100, time.gap = NULL) {
 
   ## Argos error multiplication factors
   amf <- data.frame(
@@ -21,7 +21,7 @@ prefilter <- function(d, time.gap = NULL) {
   )
 
   ##  convert dates to POSIXt
-  ##  remove any duplicate date records,
+  ##  flag any duplicate date records,
   ##  order records by time,
   ##  remove Z-class locations
   ##  set lc to ordered factor
@@ -32,9 +32,9 @@ prefilter <- function(d, time.gap = NULL) {
   ##  add Argos error multiplication factors
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
-    distinct(date, .keep_all = TRUE) %>%
+    mutate(keep = difftime(date, lag(date), units = "secs") > 10) %>%
     arrange(order(date)) %>%
-    filter(lc != "Z") %>%
+    mutate(keep = ifelse(lc == "Z", FALSE, keep)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B"), ordered = TRUE)) %>%
     mutate(lon = ifelse(lon > 180, 180 - lon, lon)) %>%
     mutate(x = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,1]) %>%
@@ -44,49 +44,40 @@ prefilter <- function(d, time.gap = NULL) {
     left_join(., amf, by = "lc")
 
   ## use loess smooth to identify outliers by distance (faster than speed filters)
-  res.x <-
+  lo.x <-
     loess(
       x ~ as.numeric(date),
       data = d,
-      span = 0.1,
+      span = 0.01,
       na.action = "na.exclude",
       control = loess.control(surface = "direct")
-    ) %>%
-    .$residuals
+    )
+  res.x <- lo.x$residuals
 
-  res.y <-
+  lo.y <-
     loess(
       y ~ as.numeric(date),
       data = d,
-      span = 0.1,
+      span = 0.01,
       na.action = "na.exclude",
       control = loess.control(surface = "direct")
-    ) %>%
-    .$residuals
+    )
+  res.y <- lo.y$residuals
 
  ## flag extreme outlier locations to be ignored by SSM filter
- d <- d %>%
-    mutate(dist.keep = ifelse((res.x > quantile(res.x, 0.001) & res.x < quantile(res.x, 0.999)) &
-           (res.y > quantile(res.y, 0.001) & res.y < quantile(res.y, 0.999)), TRUE, FALSE))
-
-
- ## identify time gaps (in days) between observations
- d <- d %>%
-   mutate(diff = (date - lag(date)) / 86400) %>%
-   mutate(time.keep = TRUE)
-
- if(!is.null(time.gap)) {
-   ## flag segments after long time gaps
-   q <- which(d$diff > time.gap)
-   if(length(q) > 0) {
-     q <- min(q)
-     d$time.keep[q:nrow(d)] <- FALSE
-   }
- }
-
- ## merge .keep lgl vectors
- d <- d %>%
-   mutate(keep = ifelse((dist.keep & time.keep), TRUE, FALSE))
+  d <- d %>%
+    mutate(keep = ifelse((
+      res.x <= quantile(res.x, 0.001) &
+        res.x >= quantile(res.x, 0.999) & abs(res.x) >= min.dist
+    ) &
+      (
+        res.y <= quantile(res.y, 0.001) &
+          res.y >= quantile(res.y, 0.999) &
+          abs(res.y) >= min.dist
+      ),
+    FALSE,
+    keep
+    ))
 
  d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, amf_x, amf_y, keep)
 }
