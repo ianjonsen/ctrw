@@ -26,6 +26,7 @@
 ##'
 ##' @examples
 ##' \dontrun{
+##' require(dplyr)
 ##' data(ellie)
 ##' fit <- ellie %>%
 ##'     prefilter(., min.dist = 100) %>%
@@ -33,7 +34,6 @@
 ##'
 ##' ## fit LS measurement model
 ##' fit.ls <- ellie %>%
-##'     select(1:5) %>%
 ##'     prefilter(., min.dist = 100) %>%
 ##'     fit_ssm(ts = 6, subset = .$keep, model = "LS")
 ##' }
