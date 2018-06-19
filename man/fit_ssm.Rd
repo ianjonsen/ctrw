@@ -11,11 +11,9 @@ fit_ssm(d, tstep = 1, subset = rep(TRUE, nrow(d)), model = c("KF", "LS"),
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
 
-\item{tstep}{the time step, in hours, to predict to}
-
 \item{subset}{a logical vector indicating the subset of data records to be filtered}
 
-\item{parameters}{the TMB parameter list}
+\item{model}{the measurement error model to be used: `KF` or `LS`}
 
 \item{optim}{numerical optimizer}
 
@@ -23,6 +21,8 @@ fit_ssm(d, tstep = 1, subset = rep(TRUE, nrow(d)), model = c("KF", "LS"),
 
 \item{span}{the span parameter for the loess fits used to estimate
 initial locations}
+
+\item{ts}{the time step, in hours, to predict to}
 }
 \value{
 a list with components
@@ -30,7 +30,7 @@ a list with components
 \item{\code{fitted}}{a data.frame of fitted locations}
 \item{\code{par}}{model parameter summmary}
 \item{\code{data}}{the input data.frame}
-\item{\code{subset}}{the input subset vector}
+\item{\code{subset}}{the inpu subset vector}
 \item{\code{tstep}}{the prediction time step}
 \item{\code{opt}}{the object returned by the optimizer}
 \item{\code{tmb}}{the TMB object}
@@ -42,25 +42,19 @@ Continuous-time Random Walk Filter
 \details{
 Fit a simple random walk in continuous time to filter Argos KF of LS data and predict
 locations on a regular time step.
+}
+\examples{
+\dontrun{
+data(ellie)
+fit <- ellie \%>\%
+    prefilter(., min.dist = 100) \%>\%
+    fit_ssm(ts = 6, subset = .$keep)
 
-The input track is given as a dataframe where each row is an
-observed location, with columns
-\describe{
-\item{'id'}{unique identifier,}
-\item{'date'}{observation time (as GMT POSIXct),}
-\item{'lc'}{location class,}
-\item{'lon'}{observed longitude,}
-\item{'lat'}{observed latitude}
+## fit LS measurement model
+fit.ls <- ellie \%>\%
+    select(1:5) \%>\%
+    prefilter(., min.dist = 100) \%>\%
+    fit_ssm(ts = 6, subset = .$keep, model = "LS")
 }
 
-The TMB parameter list can be specified directly with the
-\code{parameters} argument. Otherwise suitable parameter values
-are estimated from predicted locations estimated by fitting loess
-smooths to the raw observations.
-
-The filtering model assumes the errors in longitude and latitude
-are proportional to scale factors determined by the location
-class. The scale factors are specified through the \code{amf}
-argument. By default the function uses the same scaling factors
-for location accuracy as used in the R package crawl for ARGOS data.
 }
