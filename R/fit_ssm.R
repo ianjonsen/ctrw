@@ -1,4 +1,4 @@
-##' Continuous-time Simple Random Walk Filter
+##' Continuous-time Random Walk Filter
 ##'
 ##' Fit a simple random walk in continuous time to filter Argos KF of LS data and predict
 ##' locations on a regular time step.
@@ -44,11 +44,14 @@
 ##' \item{\code{tmb}}{the TMB object}
 ##' \item{\code{aic}}{the calculated Akaike Information Criterion}
 ##'
-@useDynLib ctrw
-@importFrom TMB MakeADFun sdreport
-@importFrom stats loess loess.control cov sd predict nlminb
-@importFrom geosphere mercator
-@export
+##' @useDynLib ctrw
+##' @importFrom TMB MakeADFun sdreport newtonOption
+##' @importFrom stats loess loess.control cov sd predict nlminb
+##' @importFrom geosphere mercator
+##'
+##'
+##' @export
+
 fit_ssm <-
   function(d,
            tstep = 1,
