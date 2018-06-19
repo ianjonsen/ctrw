@@ -41,8 +41,8 @@
 ##' @useDynLib ctrw
 ##' @importFrom TMB MakeADFun sdreport newtonOption
 ##' @importFrom stats loess loess.control cov sd predict nlminb
+##' @importFrom dplyr mutate filter select full_join arrange lag %>%
 ##' @importFrom geosphere mercator
-##'
 ##'
 ##' @export
 
@@ -160,7 +160,7 @@ fit_ssm <-
 
     ## TMB - create objective function
     obj <-
-      TMB::MakeADFun(
+      MakeADFun(
         data,
         parameters,
         map = map,
@@ -181,7 +181,7 @@ fit_ssm <-
       ))
 
     ## Parameters, states and the fitted values
-    rep <- TMB::sdreport(obj)
+    rep <- sdreport(obj)
     fxd <- summary(rep, "report")
 
     rdm <-
