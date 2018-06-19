@@ -63,5 +63,5 @@ prefilter <- function(d, time.gap = 21) {
  d <- d %>%
    mutate(keep = ifelse((dist.keep | time.keep), TRUE, FALSE))
 
- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, dist.keep, time.keep)
+ d %>% select(id, date, lc, lon, lat, smaj, smin, eor, keep)
 }
