@@ -75,31 +75,11 @@ fit_ssm <-
     if(max(d$eor) > 2 * pi)
       stop("Ellipse orientation angles exceed 2*pi radians, perhaps you should convert from degrees to radians")
 
-    ## Argos error multiplication factors
-    amf <- data.frame(
-      lc = factor(
-        c("3", "2", "1", "0", "A", "B"),
-        levels = c("3", "2", "1", "0", "A", "B"),
-        ordered = TRUE
-      ),
-      amf_lon = c(1, 1.54, 3.72, 23.9, 13.51, 44.22),
-      amf_lat = c(1, 1.29, 2.55, 103.7, 14.99, 32.53)
-    )
-
     ## drop any records flagged to be ignored
-    ## remove any records with duplicate dates
-    ## transform lon,lat to x,y in km
-    ## convert error ellipse axes from m to km
-    ## add Argos error multiplication factors
+    ## add is.data flag (distinquish obs from reg states)
     d <- d %>%
       filter(subset) %>%
-      distinct(date, .keep_all = TRUE) %>%
-      mutate(isd = TRUE) %>%
-      mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B"), ordered = TRUE)) %>%
-      mutate(x = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,1]) %>%
-      mutate(y = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,2]) %>%
-      mutate(smaj = smaj / 1000, smin = smin / 1000) %>%
-      left_join(., amf, by = "lc")
+      mutate(isd = TRUE)
 
     ## Interpolation times - assume on tstep-multiple of the hour
     tsp <- tstep * 3600
@@ -176,7 +156,7 @@ fit_ssm <-
         m = d.all$smin,
         M = d.all$smaj,
         c = d.all$eor,
-        K = cbind(d.all$amf_lon, d.all$amf_lat)
+        K = cbind(d.all$amf_x, d.all$amf_y)
       )
     switch(model,
            KF = {
@@ -220,14 +200,14 @@ fit_ssm <-
 
     ## Fitted values (estimated locations at observation times)
     fd <- as.data.frame(rdm) %>%
-      mutate(id = unique(d.all$ptt), date = d.all$date, isd = d.all$isd) %>%
+      mutate(id = unique(d.all$id), date = d.all$date, isd = d.all$isd) %>%
       select(id, date, x, y, x.se, y.se, isd) %>%
       filter(isd) %>%
       select(-isd)
 
     ## Predicted values (estimated locations at regular time intervals, defined by `tstep`)
     pd <- as.data.frame(rdm) %>%
-      mutate(id = unique(d.all$ptt), date = d.all$date, isd = d.all$isd) %>%
+      mutate(id = unique(d.all$id), date = d.all$date, isd = d.all$isd) %>%
       select(id, date, x, y, x.se, y.se, isd) %>%
       filter(!isd) %>%
       select(-isd)
