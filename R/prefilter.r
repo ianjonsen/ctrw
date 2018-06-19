@@ -1,3 +1,12 @@
+##' Prefilter
+##'
+##' Prepare Argos data for fitting a ctrw model
+##'
+##' @importFrom lubridate ymd_hms
+##' @importFrom dplyr mutate distinct arrange filter select %>%
+##'
+##' @export
+
 prefilter <- function(d, time.gap = 21) {
 
   ##  convert dates to POSIXt
@@ -6,7 +15,7 @@ prefilter <- function(d, time.gap = 21) {
   ##  remove Z-class locations
   ##  remove locations in N Hemisphere
   d <- d %>%
-    mutate(date = lubridate::ymd_hms(date, tz = "GMT")) %>%
+    mutate(date = ymd_hms(date, tz = "GMT")) %>%
     distinct(date, .keep_all = TRUE) %>%
     arrange(order(date)) %>%
     filter(lc != "Z") %>%
