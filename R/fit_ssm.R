@@ -1,0 +1,245 @@
+##' Continuous-time Simple Random Walk Filter
+##'
+##' Fit a simple random walk in continuous time to filter Argos KF of LS data and predict
+##' locations on a regular time step.
+##'
+##' The input track is given as a dataframe where each row is an
+##' observed location, with columns
+##' \describe{
+##' \item{'id'}{unique identifier,}
+##' \item{'date'}{observation time (as GMT POSIXct),}
+##' \item{'lc'}{location class,}
+##' \item{'lon'}{observed longitude,}
+##' \item{'lat'}{observed latitude}
+##' }
+##'
+##' The TMB parameter list can be specified directly with the
+##' \code{parameters} argument. Otherwise suitable parameter values
+##' are estimated from predicted locations estimated by fitting loess
+##' smooths to the raw observations.
+##'
+##' The filtering model assumes the errors in longitude and latitude
+##' are proportional to scale factors determined by the location
+##' class. The scale factors are specified through the \code{amf}
+##' argument. By default the function uses the same scaling factors
+##' for location accuracy as used in the R package crawl for ARGOS data.
+##'
+##' @title Correlated Random Walk Filter
+##' @param d a data frame of observations including Argos KF error ellipse info
+##' @param subset a logical vector indicating the subset of data records to be filtered
+##' @param tstep the time step, in hours, to predict to
+##' @param parameters the TMB parameter list
+##' @param optim numerical optimizer
+##' @param verbose report progress during minimization
+##' @param span the span parameter for the loess fits used to estimate
+##'   initial locations
+##' @return a list with components
+##' \item{\code{predicted}}{a data.frame of predicted location states}
+##' \item{\code{fitted}}{a data.frame of fitted locations}
+##' \item{\code{par}}{model parameter summmary}
+##' \item{\code{data}}{the input data.frame}
+##' \item{\code{subset}}{the input subset vector}
+##' \item{\code{tstep}}{the prediction time step}
+##' \item{\code{opt}}{the object returned by the optimizer}
+##' \item{\code{tmb}}{the TMB object}
+##' \item{\code{aic}}{the calculated Akaike Information Criterion}
+##'
+@useDynLib ctrw
+@importFrom TMB MakeADFun sdreport
+@importFrom stats loess loess.control cov sd predict nlminb
+@importFrom geosphere mercator
+@export
+fit_ssm <-
+  function(d,
+           tstep = 1,
+           subset = rep(TRUE, nrow(d)),
+           model = c("KF", "LS"),
+           parameters = NULL,
+           optim = c("nlminb", "optim"),
+           verbose = FALSE,
+           span = 0.1) {
+
+#    compile("~/Dropbox/collab/imos/argos/src/rw_argos_2.cpp")
+#    dyn.load(dynlib("~/Dropbox/collab/imos/argos/src/rw_argos_2"))
+    optim <- match.arg(optim)
+    model <- match.arg(model)
+
+    if(!model %in% c("KF","LS")) stop("Observation model can only be `KF`` or `LS`")
+    if(!class(d$date)[1] %in% c("POSIXct","POSIXt"))
+      stop("Dates must be in POSIX format, consider using the lubridate package to convert")
+    if(!all.equal(d$date, d$date[order(d$date)]))
+      stop("Observations are not sequential in time, consider using d[order(d$date),]")
+    if(max(d$eor) > 2 * pi)
+      stop("Ellipse orientation angles exceed 2*pi radians, perhaps you should convert from degrees to radians")
+
+    ## Argos error multiplication factors
+    amf <- data.frame(
+      lc = factor(
+        c("3", "2", "1", "0", "A", "B"),
+        levels = c("3", "2", "1", "0", "A", "B"),
+        ordered = TRUE
+      ),
+      amf_lon = c(1, 1.54, 3.72, 23.9, 13.51, 44.22),
+      amf_lat = c(1, 1.29, 2.55, 103.7, 14.99, 32.53)
+    )
+
+    ## drop any records flagged to be ignored
+    ## remove any records with duplicate dates
+    ## transform lon,lat to x,y in km
+    ## convert error ellipse axes from m to km
+    ## add Argos error multiplication factors
+    d <- d %>%
+      filter(subset) %>%
+      distinct(date, .keep_all = TRUE) %>%
+      mutate(isd = TRUE) %>%
+      mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B"), ordered = TRUE)) %>%
+      mutate(x = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,1]) %>%
+      mutate(y = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,2]) %>%
+      mutate(smaj = smaj / 1000, smin = smin / 1000) %>%
+      left_join(., amf, by = "lc")
+
+    ## Interpolation times - assume on tstep-multiple of the hour
+    tsp <- tstep * 3600
+    tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
+    index <- floor(tms)
+    ts <- data.frame(date = seq(trunc(d$date[1], "hour"), by = tsp, length.out = max(index) + 2))
+
+    ## merge data and interpolation times
+    d.all <- full_join(d, ts, by = "date") %>%
+      arrange(date) %>%
+      mutate(isd = ifelse(is.na(isd), FALSE, isd)) %>%
+      mutate(id = ifelse(is.na(id), na.omit(unique(id))[1], id))
+
+    class(d.all$x) <- NA_real_
+    class(d.all$y) <- NA_real_
+
+    ## calc delta times in hours for observations & interpolation points (states)
+    dt <- difftime(d.all$date, lag(d.all$date), units = "hours") %>%
+      as.numeric() / 24
+    dt[1] <- 0
+
+    ## Predict track from loess smooths (state initial values)
+    ## TP -data here should only be at obs times.
+    fit.x <-
+      loess(
+        x ~ as.numeric(date),
+        data = d,
+        span = span,
+        na.action = "na.exclude",
+        control = loess.control(surface = "direct")
+      )
+    fit.y <-
+      loess(
+        y ~ as.numeric(date),
+        data = d,
+        span = span,
+        na.action = "na.exclude",
+        control = loess.control(surface = "direct")
+      )
+
+    ## Predict track, increments and stochastic innovations
+    ## for interp this predict call needs a newdata = all dates ( interp and obs combined times )
+    xs <-
+      cbind(predict(fit.x, newdata = data.frame(date = as.numeric(d.all$date))),
+            predict(fit.y, newdata = data.frame(date = as.numeric(d.all$date)))
+            )
+
+    if (is.null(parameters)) {
+      ## Estimate stochastic innovations
+      es <- xs[-1,] - xs[-nrow(xs),]
+
+      ## Estimate components of variance
+      V <- cov(es)
+      sigma <- sqrt(diag(V))
+      rho <- V[1, 2] / prod(sqrt(diag(V)))
+
+      parameters <-
+        list(
+          l_sigma = log(pmax(1e-08, sigma)),
+          l_rho_p = log((1 + rho) / (1 - rho)),
+          X = xs,
+          l_tau = c(0,0),
+          l_rho_o = 0
+        )
+    }
+
+    ## TMB - data list
+    data <-
+      list(
+        Y = cbind(d.all$x, d.all$y),
+        dt = dt,
+        isd = as.integer(d.all$isd),
+        obs_mod = ifelse(model == "KF", 1, 0),
+        m = d.all$smin,
+        M = d.all$smaj,
+        c = d.all$eor,
+        K = cbind(d.all$amf_lon, d.all$amf_lat)
+      )
+    switch(model,
+           KF = {
+             map = list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
+           },
+           LS = {
+             map = list()
+           })
+
+    ## TMB - create objective function
+    obj <-
+      TMB::MakeADFun(
+        data,
+        parameters,
+        map = map,
+        random = "X",
+        DLL = "ctrw",
+        hessian = TRUE,
+        silent = !verbose
+      )
+    obj$env$inner.control$trace <- verbose
+    obj$env$tracemgc <- verbose
+
+    ## Minimize objective function
+    opt <-
+      suppressWarnings(switch(
+        optim,
+        nlminb = nlminb(obj$par, obj$fn, obj$gr),
+        optim = do.call("optim", obj)
+      ))
+
+    ## Parameters, states and the fitted values
+    rep <- TMB::sdreport(obj)
+    fxd <- summary(rep, "report")
+
+    rdm <-
+      matrix(summary(rep, "random"),
+             nrow(d.all),
+             4,
+             dimnames = list(NULL, c("x", "y", "x.se", "y.se")))
+
+    ## Fitted values (estimated locations at observation times)
+    fd <- as.data.frame(rdm) %>%
+      mutate(id = unique(d.all$ptt), date = d.all$date, isd = d.all$isd) %>%
+      select(id, date, x, y, x.se, y.se, isd) %>%
+      filter(isd) %>%
+      select(-isd)
+
+    ## Predicted values (estimated locations at regular time intervals, defined by `tstep`)
+    pd <- as.data.frame(rdm) %>%
+      mutate(id = unique(d.all$ptt), date = d.all$date, isd = d.all$isd) %>%
+      select(id, date, x, y, x.se, y.se, isd) %>%
+      filter(!isd) %>%
+      select(-isd)
+
+    if (optim == "nlminb")
+      aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
+
+    list(
+      predicted = pd,
+      fitted = fd,
+      par = fxd,
+      data = d,
+      subset = subset,
+      opt = opt,
+      tmb = obj,
+      aic = aic
+    )
+  }
