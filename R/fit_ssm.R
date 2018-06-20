@@ -56,6 +56,7 @@ fit_ssm <-
            verbose = FALSE,
            span = 0.1) {
 
+    call <- match.call()
     optim <- match.arg(optim)
     data.class <- class(d)[2]
 
@@ -217,6 +218,7 @@ fit_ssm <-
       aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
 
     out <- list(
+      call = call,
       predicted = pd,
       fitted = fd,
       par = fxd,
