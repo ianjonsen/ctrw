@@ -56,11 +56,16 @@ fit_ssm <-
 
     optim <- match.arg(optim)
 
-    ## drop any records flagged to be ignored
+    ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
-    d <- d %>%
-      if(fit.to.subset) filter(.$keep) %>%
-      mutate(isd = TRUE)
+    if(fit.to.subset) {
+      d <- d %>%
+        filter(.$keep) %>%
+        mutate(isd = TRUE)
+    } else {
+      d <- d %>%
+        mutate(isd = TRUE)
+    }
 
     ## Interpolation times - assume on ts-multiple of the hour
     tsp <- ts * 3600
@@ -128,21 +133,36 @@ fit_ssm <-
     }
 
     ## TMB - data list
-    data <-
-      list(
-        Y = cbind(d.all$x, d.all$y),
-        dt = dt,
-        isd = as.integer(d.all$isd),
-        obs_mod = ifelse(class(d)[2] == "KF", 1, 0),
-        m = d.all$smin,
-        M = d.all$smaj,
-        c = d.all$eor,
-        K = cbind(d.all$amf_x, d.all$amf_y)
-      )
+    fill <- rep(1, nrow(d.all))
+    if(class(d)[2] == "KF") {
+      data <-
+        list(
+          Y = cbind(d.all$x, d.all$y),
+          dt = dt,
+          isd = as.integer(d.all$isd),
+          obs_mod = 1,
+          m = d.all$smin,
+          M = d.all$smaj,
+          c = d.all$eor,
+          K = cbind(fill, fill)
+        )
+    } else {
+      data <-
+        list(
+          Y = cbind(d.all$x, d.all$y),
+          dt = dt,
+          isd = as.integer(d.all$isd),
+          obs_mod = 0,
+          m = fill,
+          M = fill,
+          c = fill,
+          K = cbind(d.all$amf_x,d.all$amf_y)
+        )
+    }
 
     if(class(d)[2] == "KF") map = list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
-    else map = list()
-
+    else if(class(d)[2] == "LS") map = list()
+    else stop("Data class not recognised")
 
     ## TMB - create objective function
     obj <-
