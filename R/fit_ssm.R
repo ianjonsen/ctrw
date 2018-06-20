@@ -224,8 +224,11 @@ fit_ssm <-
       par = fxd,
       data = d,
       subset = ifelse(fit.to.subset, d$keep, NULL),
+      mmod = data.class,
+      ts = ts,
       opt = opt,
       tmb = obj,
+      rep = rep,
       aic = aic
     )
     class(out) <- append("ctrw", class(out))

@@ -8,16 +8,20 @@
 ##'
 ##' @export
 
-print.ctrw <- function(x, digits = max(3, getOption("digits") - 3), ...)
+print.ctrw <- function(x, digits = 3, ...)
 {
-  mmod <- class(x$data)[2]
+  mmod <- x$mmod
   nbrStates <- nrow(x$predicted)
   nbStates <- nrow(x$fitted)
   parm <- x$par
 
-  print(x$call)
-
-  cat("\n")
-  cat("negative log-likelihood:", logLik(x)$val)
+  cat("negative log-likelihood:", x$opt$objective, "\n")
+  cat("convergence:", x$opt$message, "\n\n")
+  cat("measurement error model:", mmod, "\n")
+  cat("number of observations:", nbStates, "\n")
+  cat("number of regularised state estimates:", nbrStates, "\n\n")
+  cat("parameter estimates\n")
+  cat("-------------------\n")
+  print(parm, digits = digits, justify = "right")
 
 }
