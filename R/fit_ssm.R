@@ -44,7 +44,6 @@
 ##' @importFrom TMB MakeADFun sdreport newtonOption
 ##' @importFrom stats loess loess.control cov sd predict nlminb
 ##' @importFrom dplyr mutate filter select full_join arrange lag %>%
-##' @importFrom geosphere mercator
 ##'
 ##' @export
 
