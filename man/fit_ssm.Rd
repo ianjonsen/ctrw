@@ -4,16 +4,15 @@
 \alias{fit_ssm}
 \title{Correlated Random Walk Filter}
 \usage{
-fit_ssm(d, tstep = 1, subset = rep(TRUE, nrow(d)), model = c("KF", "LS"),
-  parameters = NULL, optim = c("nlminb", "optim"), verbose = FALSE,
-  span = 0.1)
+fit_ssm(d, ts = 1, fit.to.subset = TRUE, parameters = NULL,
+  optim = c("nlminb", "optim"), verbose = FALSE, span = 0.1)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
 
-\item{subset}{a logical vector indicating the subset of data records to be filtered}
+\item{ts}{the time step, in hours, to predict to}
 
-\item{model}{the measurement error model to be used: `KF` or `LS`}
+\item{fit.to.subset}{a logical vector (default is TRUE) indicating whether the SSM is to be fit to the data subset determined by prefilter}
 
 \item{optim}{numerical optimizer}
 
@@ -21,8 +20,6 @@ fit_ssm(d, tstep = 1, subset = rep(TRUE, nrow(d)), model = c("KF", "LS"),
 
 \item{span}{the span parameter for the loess fits used to estimate
 initial locations}
-
-\item{ts}{the time step, in hours, to predict to}
 }
 \value{
 a list with components
@@ -31,7 +28,7 @@ a list with components
 \item{\code{par}}{model parameter summmary}
 \item{\code{data}}{the input data.frame}
 \item{\code{subset}}{the inpu subset vector}
-\item{\code{tstep}}{the prediction time step}
+\item{\code{ts}}{the prediction time step}
 \item{\code{opt}}{the object returned by the optimizer}
 \item{\code{tmb}}{the TMB object}
 \item{\code{aic}}{the calculated Akaike Information Criterion}
@@ -45,16 +42,16 @@ locations on a regular time step.
 }
 \examples{
 \dontrun{
+require(dplyr)
 data(ellie)
 fit <- ellie \%>\%
     prefilter(., min.dist = 100) \%>\%
-    fit_ssm(ts = 6, subset = .$keep)
+    fit_ssm(ts = 6)
 
 ## fit LS measurement model
 fit.ls <- ellie \%>\%
-    select(1:5) \%>\%
     prefilter(., min.dist = 100) \%>\%
-    fit_ssm(ts = 6, subset = .$keep, model = "LS")
+    fit_ssm(ts = 6)
 }
 
 }

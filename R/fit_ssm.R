@@ -6,9 +6,8 @@
 ##'
 ##' @title Correlated Random Walk Filter
 ##' @param d a data frame of observations including Argos KF error ellipse info
-##' @param subset a logical vector indicating the subset of data records to be filtered
 ##' @param ts the time step, in hours, to predict to
-##' @param model the measurement error model to be used: `KF` or `LS`
+##' @param fit.to.subset a logical vector (default is TRUE) indicating whether the SSM is to be fit to the data subset determined by prefilter
 ##' @param optim numerical optimizer
 ##' @param verbose report progress during minimization
 ##' @param span the span parameter for the loess fits used to estimate
@@ -19,7 +18,7 @@
 ##' \item{\code{par}}{model parameter summmary}
 ##' \item{\code{data}}{the input data.frame}
 ##' \item{\code{subset}}{the inpu subset vector}
-##' \item{\code{tstep}}{the prediction time step}
+##' \item{\code{ts}}{the prediction time step}
 ##' \item{\code{opt}}{the object returned by the optimizer}
 ##' \item{\code{tmb}}{the TMB object}
 ##' \item{\code{aic}}{the calculated Akaike Information Criterion}
@@ -30,12 +29,12 @@
 ##' data(ellie)
 ##' fit <- ellie %>%
 ##'     prefilter(., min.dist = 100) %>%
-##'     fit_ssm(ts = 6, subset = .$keep)
+##'     fit_ssm(ts = 6)
 ##'
 ##' ## fit LS measurement model
 ##' fit.ls <- ellie %>%
 ##'     prefilter(., min.dist = 100) %>%
-##'     fit_ssm(ts = 6, subset = .$keep, model = "LS")
+##'     fit_ssm(ts = 6)
 ##' }
 ##'
 ##' @useDynLib ctrw
@@ -48,33 +47,23 @@
 
 fit_ssm <-
   function(d,
-           tstep = 1,
-           subset = rep(TRUE, nrow(d)),
-           model = c("KF", "LS"),
+           ts = 1,
+           fit.to.subset = TRUE,
            parameters = NULL,
            optim = c("nlminb", "optim"),
            verbose = FALSE,
            span = 0.1) {
 
     optim <- match.arg(optim)
-    model <- match.arg(model)
-
-    if(!model %in% c("KF","LS")) stop("Observation model can only be `KF` or `LS`")
-    if(!class(d$date)[1] %in% c("POSIXct","POSIXt"))
-      stop("Dates must be in POSIX format, consider using the lubridate package to convert")
-    if(!all.equal(d$date, d$date[order(d$date)]))
-      stop("Observations are not sequential in time, consider using d[order(d$date),]")
-    if(max(d$eor) > 2 * pi)
-      stop("Ellipse orientation angles exceed 2*pi radians, perhaps you should convert from degrees to radians")
 
     ## drop any records flagged to be ignored
     ## add is.data flag (distinquish obs from reg states)
     d <- d %>%
-      filter(subset) %>%
+      if(fit.to.subset) filter(.$keep) %>%
       mutate(isd = TRUE)
 
-    ## Interpolation times - assume on tstep-multiple of the hour
-    tsp <- tstep * 3600
+    ## Interpolation times - assume on ts-multiple of the hour
+    tsp <- ts * 3600
     tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
     index <- floor(tms)
     ts <- data.frame(date = seq(trunc(d$date[1], "hour"), by = tsp, length.out = max(index) + 2))
@@ -144,19 +133,16 @@ fit_ssm <-
         Y = cbind(d.all$x, d.all$y),
         dt = dt,
         isd = as.integer(d.all$isd),
-        obs_mod = ifelse(model == "KF", 1, 0),
+        obs_mod = ifelse(class(d)[2] == "KF", 1, 0),
         m = d.all$smin,
         M = d.all$smaj,
         c = d.all$eor,
         K = cbind(d.all$amf_x, d.all$amf_y)
       )
-    switch(model,
-           KF = {
-             map = list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
-           },
-           LS = {
-             map = list()
-           })
+
+    if(class(d)[2] == "KF") map = list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
+    else map = list()
+
 
     ## TMB - create objective function
     obj <-
@@ -197,7 +183,7 @@ fit_ssm <-
       filter(isd) %>%
       select(-isd)
 
-    ## Predicted values (estimated locations at regular time intervals, defined by `tstep`)
+    ## Predicted values (estimated locations at regular time intervals, defined by `ts`)
     pd <- as.data.frame(rdm) %>%
       mutate(id = unique(d.all$id), date = d.all$date, isd = d.all$isd) %>%
       select(id, date, x, y, x.se, y.se, isd) %>%
@@ -207,7 +193,7 @@ fit_ssm <-
     if (optim == "nlminb")
       aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
 
-    list(
+    out <- list(
       predicted = pd,
       fitted = fd,
       par = fxd,
@@ -217,4 +203,5 @@ fit_ssm <-
       tmb = obj,
       aic = aic
     )
+    class(out) <- append("ctrw", class(out))
   }
