@@ -28,11 +28,13 @@
 ##' require(dplyr)
 ##' data(ellie)
 ##' fit <- ellie %>%
+##'     select(1:5) %>%
 ##'     prefilter(., min.dist = 100) %>%
 ##'     fit_ssm(ts = 6)
 ##'
 ##' ## fit LS measurement model
 ##' fit.ls <- ellie %>%
+##'     select(1:8) %>%
 ##'     prefilter(., min.dist = 100) %>%
 ##'     fit_ssm(ts = 6)
 ##' }
