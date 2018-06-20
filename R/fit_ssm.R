@@ -55,15 +55,16 @@ fit_ssm <-
            span = 0.1) {
 
     optim <- match.arg(optim)
+    data.class <- class(d)[2]
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
     if(fit.to.subset) {
-      d <- d %>%
+      dnew <- d %>%
         filter(.$keep) %>%
         mutate(isd = TRUE)
     } else {
-      d <- d %>%
+      dnew <- d %>%
         mutate(isd = TRUE)
     }
 
@@ -74,7 +75,7 @@ fit_ssm <-
     ts <- data.frame(date = seq(trunc(d$date[1], "hour"), by = tsp, length.out = max(index) + 2))
 
     ## merge data and interpolation times
-    d.all <- full_join(d, ts, by = "date") %>%
+    d.all <- full_join(dnew, ts, by = "date") %>%
       arrange(date) %>%
       mutate(isd = ifelse(is.na(isd), FALSE, isd)) %>%
       mutate(id = ifelse(is.na(id), na.omit(unique(id))[1], id))
@@ -92,7 +93,7 @@ fit_ssm <-
     fit.x <-
       loess(
         x ~ as.numeric(date),
-        data = d,
+        data = dnew,
         span = span,
         na.action = "na.exclude",
         control = loess.control(surface = "direct")
@@ -100,7 +101,7 @@ fit_ssm <-
     fit.y <-
       loess(
         y ~ as.numeric(date),
-        data = d,
+        data = dnew,
         span = span,
         na.action = "na.exclude",
         control = loess.control(surface = "direct")
@@ -134,7 +135,7 @@ fit_ssm <-
 
     ## TMB - data list
     fill <- rep(1, nrow(d.all))
-    if(class(d)[2] == "KF") {
+    if(data.class == "KF") {
       data <-
         list(
           Y = cbind(d.all$x, d.all$y),
@@ -146,7 +147,7 @@ fit_ssm <-
           c = d.all$eor,
           K = cbind(fill, fill)
         )
-    } else {
+    } else if(data.class == "LS") {
       data <-
         list(
           Y = cbind(d.all$x, d.all$y),
@@ -158,11 +159,10 @@ fit_ssm <-
           c = fill,
           K = cbind(d.all$amf_x,d.all$amf_y)
         )
-    }
+    } else stop("Data class not recognised")
 
-    if(class(d)[2] == "KF") map = list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
-    else if(class(d)[2] == "LS") map = list()
-    else stop("Data class not recognised")
+    if(data.class == "KF") map = list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
+    else if(data.class == "LS") map = list()
 
     ## TMB - create objective function
     obj <-
@@ -189,6 +189,7 @@ fit_ssm <-
     ## Parameters, states and the fitted values
     rep <- sdreport(obj)
     fxd <- summary(rep, "report")
+    if(data.class == "KF") fxd <- fxd[1:3, ]
 
     rdm <-
       matrix(summary(rep, "random"),
@@ -218,10 +219,11 @@ fit_ssm <-
       fitted = fd,
       par = fxd,
       data = d,
-      subset = subset,
+      subset = ifelse(fit.to.subset, d$keep, NULL),
       opt = opt,
       tmb = obj,
       aic = aic
     )
     class(out) <- append("ctrw", class(out))
+    out
   }

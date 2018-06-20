@@ -109,7 +109,7 @@ prefilter <- function(d, min.dist = 100, time.gap = NULL) {
     ))
 
   f1 <- sum(!d$keep) - f
-  cat(sprintf("%d potential outlier locations flagged to be ignored \n", f1))
+  cat(sprintf("%d potential outlier locations with residuals > %d km flagged to be ignored \n", f1, min.dist))
 
   switch(data.type,
          LS = {
@@ -120,6 +120,6 @@ prefilter <- function(d, min.dist = 100, time.gap = NULL) {
            d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
            class(d) <- append(c("ctrw", "KF"), class(d))
          })
-
+  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
   return(d)
 }
