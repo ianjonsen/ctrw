@@ -114,11 +114,11 @@ prefilter <- function(d, min.dist = 100, time.gap = NULL) {
   switch(data.type,
          LS = {
            d <- d %>% select(id, date, lc, lon, lat, x, y, amf_x, amf_y, keep)
-           class(d) <- append(c("ctrw", "LS"), class(d))
+           class(d) <- append(c("ctrwData", "LS"), class(d))
          },
          KF = {
            d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
-           class(d) <- append(c("ctrw", "KF"), class(d))
+           class(d) <- append(c("ctrwData", "KF"), class(d))
          })
   cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
   return(d)

@@ -1,6 +1,6 @@
 ##' Print \code{ctrw}
 ##'
-##' @method print ctrw
+##' @method print ctrwSSM
 ##'
 ##' @param x a \code{ctrw} fit object
 ##' @param digits number of digits to use in display
@@ -8,7 +8,7 @@
 ##'
 ##' @export
 
-print.ctrw <- function(x, digits = 3, ...)
+print.ctrwSSM <- function(x, digits = 3, ...)
 {
   mmod <- x$mmod
   nbrStates <- nrow(x$predicted)

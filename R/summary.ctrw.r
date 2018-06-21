@@ -2,9 +2,9 @@
 ##' @importFrom lme4 nobars findbars
 ##' @importFrom lme4 nobars
 ##' @importFrom dplyr %>%
-##' @method summary ctrw
+##' @method summary ctrwSSM
 ##' @export
-summary.ctrw <- function(x, digits = 3, ...) {
+summary.ctrwSSM <- function(x, digits = 3, ...) {
   if (length(list(...)) > 0) {
     warning("additional arguments ignored")
   }

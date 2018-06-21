@@ -231,6 +231,6 @@ fit_ssm <-
       rep = rep,
       aic = aic
     )
-    class(out) <- append("ctrw", class(out))
+    class(out) <- append("ctrwSSM", class(out))
     out
   }
