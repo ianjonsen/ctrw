@@ -45,7 +45,7 @@ prefilter <- function(d, min.dist = 100, time.gap = NULL) {
     mutate(y = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,2])
 
   f <- sum(!d$keep)
-  cat(sprintf("%d observations with duplicate dates flagged to be ignored \n", f))
+  cat(sprintf("%d observations with duplicate dates will be ignored \n", f))
 
   ## Prepare operations specific to data type
   switch(data.type,
@@ -109,7 +109,7 @@ prefilter <- function(d, min.dist = 100, time.gap = NULL) {
     ))
 
   f1 <- sum(!d$keep) - f
-  cat(sprintf("%d potential outlier locations with residuals > %d km flagged to be ignored \n", f1, min.dist))
+  cat(sprintf("%d potential outlier locations with residuals > %d km will be ignored \n", f1, min.dist))
 
   switch(data.type,
          LS = {

@@ -17,21 +17,24 @@ summary.ctrwSSM <- function(x, digits = 3, ...) {
                 y = x$fitted$y - subset(x$data, keep)$y)
 
   cat("negative log-likelihood:", x$opt$objective, "\n")
-  cat("convergence:", x$opt$message, "\n\n")
-  cat("Argos measurement error model:", mmod, "\n")
+  cat("convergence:", x$opt$message, "\n")
+  cat("AIC:", x$aic, "\n\n")
+
+  cat("time interval:", x$ts, "hours\n")
   cat("number of observations:", nbStates, "\n")
   cat("number of regularised state estimates:", nbrStates, "\n\n")
+  cat("Argos measurement error model:", mmod, "\n")
   cat("parameter estimates\n")
-  cat("-------------------\n")
+  cat("-------------------------\n")
   print(parm, digits = digits, justify = "right");cat("\n")
 
-  cat("quantiles of residuals: x\n")
-  cat("----------------------------\n")
-  print(quantile(resid$x), digits = digits); cat("\n")
+ # cat("quantiles of residuals: x\n")
+ # cat("----------------------------\n")
+ # print(quantile(resid$x), digits = digits); cat("\n")
 
-  cat("quantiles of residuals: y\n")
-  cat("----------------------------\n")
-  print(quantile(resid$y), digits = digits); cat("\n")
+ # cat("quantiles of residuals: y\n")
+ # cat("----------------------------\n")
+ # print(quantile(resid$y), digits = digits); cat("\n")
 
 
 }

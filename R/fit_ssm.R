@@ -59,6 +59,7 @@ fit_ssm <-
     call <- match.call()
     optim <- match.arg(optim)
     data.class <- class(d)[2]
+    cat(", fitting", data.class, "measurement error model\n")
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
@@ -225,7 +226,7 @@ fit_ssm <-
       data = d,
       subset = ifelse(fit.to.subset, d$keep, NULL),
       mmod = data.class,
-      ts = ts,
+      ts = tsp/3600,
       opt = opt,
       tmb = obj,
       rep = rep,
