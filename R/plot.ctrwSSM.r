@@ -14,27 +14,23 @@ plot.ctrwSSM <- function(m)
 
   p1 <- ggplot() +
     geom_point(data = dat, aes(x, y), shape = 19, col = grey(0.85)) +
-    geom_point(data = ndat, aes(x, y), shape = 20, size = 0.75, alpha = 0.5, col = "firebrick") +
     geom_point(data = fit$fitted, aes(x, y), size = 0.4, shape = 20, col = "dodgerblue") +
     theme_bw() +
     ggtitle("Fitted values")
 
   p2 <- ggplot() +
     geom_point(data = dat, aes(x, y), shape = 19, col = grey(0.85)) +
-    geom_point(data = ndat, aes(x, y), shape = 20, size = 0.75, alpha = 0.5, col = "firebrick") +
     geom_point(data = fit$predicted, aes(x, y), size = 0.4, shape = 20, col = "dodgerblue") +
     theme_bw() +
     ggtitle("Predicted values")
 
   p3 <- ggplot() +
     geom_point(data = dat, aes(date, x), shape = 19, col = grey(0.85)) +
-    geom_point(data = ndat, aes(date, x), shape = 20, size = 0.75, col = "firebrick") +
     geom_point(data = fit$fitted, aes(date, x), size = 0.2, shape = 20, col = "dodgerblue") +
     theme_bw()
 
   p4 <- ggplot() +
     geom_point(data = dat, aes(date, y), shape = 19, col = grey(0.85)) +
-    geom_point(data = ndat, aes(date, y), shape = 20, size = 0.75, col = "firebrick") +
     geom_point(data = fit$fitted, aes(date, y), size = 0.2, shape = 20, col = "dodgerblue") +
     theme_bw()
 
