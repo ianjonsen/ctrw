@@ -18,7 +18,7 @@ summary.ctrwSSM <- function(x, digits = 3, ...) {
 
   cat("negative log-likelihood:", x$opt$objective, "\n")
   cat("convergence:", x$opt$message, "\n\n")
-  cat("measurement error model:", mmod, "\n")
+  cat("Argos measurement error model:", mmod, "\n")
   cat("number of observations:", nbStates, "\n")
   cat("number of regularised state estimates:", nbrStates, "\n\n")
   cat("parameter estimates\n")
