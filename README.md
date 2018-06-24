@@ -13,7 +13,7 @@ Read `?fit_ssm` for details and an example of how to use the package
 First, ensure you have R version >= 3.3.0 installed:
 
 ```R
-R.Version()
+R.Version
 ```
 
 On PC's running Windows, ensure you have installed [Rtools](https://cran.r-project.org/bin/windows/Rtools/) 
