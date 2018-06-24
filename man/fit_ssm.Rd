@@ -5,7 +5,8 @@
 \title{Correlated Random Walk Filter}
 \usage{
 fit_ssm(d, ts = 1, fit.to.subset = TRUE, parameters = NULL,
-  optim = c("nlminb", "optim"), verbose = FALSE, span = 0.1)
+  tau_kf = FALSE, optim = c("nlminb", "optim"), verbose = FALSE,
+  span = 0.1)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}

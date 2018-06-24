@@ -24,6 +24,7 @@ template<class Type>
     PARAMETER_VECTOR(l_sigma);  //  Innovation variance (link scale)
     PARAMETER(l_rho_p);         //  Innovation correlation (link scale)
     PARAMETER_MATRIX(X);        //  Predicted locations TP - length(X) should be same as length(dt) - i.e. both interp & obs pos.
+    PARAMETER(l_tau_kf);        // extra smoothing parameter for KF observation model
 
     // for LS observation model
     PARAMETER_VECTOR(l_tau);        // error dispersion for LS obs model (log scale)
@@ -35,6 +36,7 @@ template<class Type>
     Type rho_p = Type(2.0) / (Type(1.0) + exp(-l_rho_p)) - Type(1.0);
     vector<Type> tau = exp(l_tau);
     Type rho_o = Type(2.0) / (Type(1.0) + exp(-l_rho_o)) - Type(1.0);
+    Type tau_kf = exp(l_tau_kf);
 
     // 2 x 2 covariance matrix for innovations
     matrix<Type> cov(2, 2);
@@ -76,9 +78,9 @@ template<class Type>
           Type M2  = (M(i)/sqrt(2)) * (M(i)/sqrt(2));
           Type m2 = (m(i)/sqrt(2)) * (m(i)/sqrt(2));
 
-          cov_obs(0,0) = M2 * s2c + m2 * c2c;
-          cov_obs(1,1) = M2 * c2c + m2 * s2c;
-          cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i),2))) * cos(c(i)) * sin(c(i));
+          cov_obs(0,0) = M2 * s2c + m2 * c2c + pow(tau_kf, 2);
+          cov_obs(1,1) = M2 * c2c + m2 * s2c + pow(tau_kf, 2);
+          cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i),2))) * cos(c(i)) * sin(c(i)) * tau_kf;
           cov_obs(1,0) = cov_obs(0,1);
         }
         nll_obs.setSigma(cov_obs);   // set up i-th obs cov matrix
@@ -91,6 +93,7 @@ template<class Type>
     ADREPORT(sigma);
     ADREPORT(rho_o);
     ADREPORT(tau);
+    ADREPORT(tau_kf);
 
     return jnll;
   }

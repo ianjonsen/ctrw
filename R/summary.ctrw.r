@@ -16,13 +16,13 @@ summary.ctrwSSM <- function(x, digits = 3, ...) {
   resid <- list(x = x$fitted$x - subset(x$data, keep)$x,
                 y = x$fitted$y - subset(x$data, keep)$y)
 
-  cat("negative log-likelihood:", x$opt$objective, "\n")
   cat("convergence:", x$opt$message, "\n")
+  cat("negative log-likelihood:", x$opt$objective, "\n")
   cat("AIC:", x$aic, "\n\n")
 
-  cat("time interval:", x$ts, "hours\n")
   cat("number of observations:", nbStates, "\n")
-  cat("number of regularised state estimates:", nbrStates, "\n\n")
+  cat("number of regular state estimates:", nbrStates, "\n")
+  cat("time interval:", x$ts, "hours\n\n")
   cat("Argos measurement error model:", mmod, "\n")
   cat("parameter estimates\n")
   cat("-------------------------\n")

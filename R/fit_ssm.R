@@ -52,6 +52,7 @@ fit_ssm <-
            ts = 1,
            fit.to.subset = TRUE,
            parameters = NULL,
+           tau_kf = FALSE,
            optim = c("nlminb", "optim"),
            verbose = FALSE,
            span = 0.1) {
@@ -131,9 +132,10 @@ fit_ssm <-
         list(
           l_sigma = log(pmax(1e-08, sigma)),
           l_rho_p = log((1 + rho) / (1 - rho)),
-          X = xs,
           l_tau = c(0,0),
-          l_rho_o = 0
+          l_rho_o = 0,
+          l_tau_kf = 0,
+          X = xs
         )
     }
 
@@ -165,8 +167,20 @@ fit_ssm <-
         )
     } else stop("Data class not recognised")
 
-    if(data.class == "KF") map = list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
-    else if(data.class == "LS") map = list()
+    if (data.class == "KF" & !tau_kf) {
+      map <-
+        list(
+          l_tau_kf = factor(NA),
+          l_tau = factor(c(NA, NA)),
+          l_rho_o = factor(NA)
+        )
+    }
+    else if (data.class == "KF" & tau_kf) {
+      map <- list(l_tau = factor(c(NA, NA)), l_rho_o = factor(NA))
+    }
+    else if (data.class == "LS") {
+      map <- list(l_tau_kf = factor(NA))
+    }
 
     ## TMB - create objective function
     obj <-
@@ -193,7 +207,7 @@ fit_ssm <-
     ## Parameters, states and the fitted values
     rep <- sdreport(obj)
     fxd <- summary(rep, "report")
-    if(data.class == "KF") fxd <- fxd[1:3, ]
+    if(data.class == "KF") fxd <- fxd[c(1:3,7), ]
 
     rdm <-
       matrix(summary(rep, "random"),
