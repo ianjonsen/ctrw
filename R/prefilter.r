@@ -7,7 +7,7 @@
 ##'
 ##' @export
 
-prefilter <- function(d, min.dist = 100, time.gap = NULL) {
+prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
 
   # check input data
   if(!ncol(d) %in% c(5,8)) stop("Data can only have 5 (for LS data) or 8 (for KF data) columns")
@@ -77,7 +77,7 @@ prefilter <- function(d, min.dist = 100, time.gap = NULL) {
     loess(
       x ~ as.numeric(date),
       data = d,
-      span = 0.01,
+      span = span,
       na.action = "na.exclude",
       control = loess.control(surface = "direct")
     )
@@ -87,7 +87,7 @@ prefilter <- function(d, min.dist = 100, time.gap = NULL) {
     loess(
       y ~ as.numeric(date),
       data = d,
-      span = 0.01,
+      span = span,
       na.action = "na.exclude",
       control = loess.control(surface = "direct")
     )
