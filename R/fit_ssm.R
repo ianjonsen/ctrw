@@ -1,26 +1,31 @@
-##' Continuous-time Random Walk Filter
+##' @title Fit a Continuous-time Random Walk filter to Argos data
 ##'
-##' Fit a simple random walk in continuous time to filter Argos KF of LS data and predict
-##' locations on a regular time step.
+##' @description fits a simple random walk in continuous time to filter Argos KF or LS data and predict
+##' locations on a regular time step
 ##'
-##'
-##' @title Correlated Random Walk Filter
 ##' @param d a data frame of observations including Argos KF error ellipse info
+##' @param span degree of loess smoothing (range: 0 - 1) to identify potential outliers in prefilter
+##' @param min.dist minimum distance from track to define potential outlier locations in prefilter
+##' @param ... arguments passed to sfilter, described below:
 ##' @param ts the time step, in hours, to predict to
 ##' @param fit.to.subset a logical vector (default is TRUE) indicating whether the SSM is to be fit to the data subset determined by prefilter
+##' @param psi a logical scalar (default is FALSE) indicating whether the KF measurement error model is to be fit with a scale parameter for the error ellipses
 ##' @param optim numerical optimizer
 ##' @param verbose report progress during minimization
-##' @param span the span parameter for the loess fits used to estimate
-##'   initial locations
+##' @param f the span parameter for the loess fits used to estimate initial location states
+##'
 ##' @return a list with components
+##' \item{\code{call}}{the matched call}
 ##' \item{\code{predicted}}{a data.frame of predicted location states}
 ##' \item{\code{fitted}}{a data.frame of fitted locations}
 ##' \item{\code{par}}{model parameter summmary}
 ##' \item{\code{data}}{the input data.frame}
 ##' \item{\code{subset}}{the inpu subset vector}
-##' \item{\code{ts}}{the prediction time step}
+##' \item{\code{mem}}{the measurement error model used}
+##' \item{\code{ts}}{the prediction time interval}
 ##' \item{\code{opt}}{the object returned by the optimizer}
 ##' \item{\code{tmb}}{the TMB object}
+##' \item{\code{rep}}{TMB sdreport}
 ##' \item{\code{aic}}{the calculated Akaike Information Criterion}
 ##'
 ##' @examples
@@ -39,216 +44,20 @@
 ##'     prefilter(., min.dist = 100) %>%
 ##'     fit_ssm(ts = 6)
 ##' }
-##'
-##' @useDynLib ctrw
-##' @importFrom TMB MakeADFun sdreport newtonOption
-##' @importFrom stats loess loess.control cov sd predict nlminb
-##' @importFrom dplyr mutate filter select full_join arrange lag %>%
+##' @importFrom dplyr group_by do rowwise %>%
 ##'
 ##' @export
+fit_ssm <- function(d,
+                    span = 0.01,
+                    min.dist = 100,
+                    ...
+                    )
+{
 
-fit_ssm <-
-  function(d,
-           ts = 1,
-           fit.to.subset = TRUE,
-           parameters = NULL,
-           tau_kf = FALSE,
-           optim = c("nlminb", "optim"),
-           verbose = FALSE,
-           span = 0.1) {
+  d %>%
+    group_by(id) %>%
+    do(pf = prefilter(., span = span, min.dist = min.dist)) %>%
+    rowwise() %>%
+    do(ssm = try(sfilter(.$pf, ...), silent = TRUE))
 
-    call <- match.call()
-    optim <- match.arg(optim)
-    data.class <- class(d)[2]
-    cat("\nfitting", data.class, "measurement error model\n")
-    if(data.class == "LS" & tau_kf) cat("tau_kf will be ignored\n")
-
-    ## drop any records flagged to be ignored, if fit.to.subset is TRUE
-    ## add is.data flag (distinquish obs from reg states)
-    if(fit.to.subset) {
-      dnew <- d %>%
-        filter(.$keep) %>%
-        mutate(isd = TRUE)
-    } else {
-      dnew <- d %>%
-        mutate(isd = TRUE)
-    }
-
-    ## Interpolation times - assume on ts-multiple of the hour
-    tsp <- ts * 3600
-    tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
-    index <- floor(tms)
-    ts <- data.frame(date = seq(trunc(d$date[1], "hour"), by = tsp, length.out = max(index) + 2))
-
-    ## merge data and interpolation times
-    d.all <- full_join(dnew, ts, by = "date") %>%
-      arrange(date) %>%
-      mutate(isd = ifelse(is.na(isd), FALSE, isd)) %>%
-      mutate(id = ifelse(is.na(id), na.omit(unique(id))[1], id))
-
-    class(d.all$x) <- NA_real_
-    class(d.all$y) <- NA_real_
-
-    ## calc delta times in hours for observations & interpolation points (states)
-    dt <- difftime(d.all$date, lag(d.all$date), units = "hours") %>%
-      as.numeric() / 24
-    dt[1] <- 0
-
-    ## Predict track from loess smooths (state initial values)
-    ## TP -data here should only be at obs times.
-    fit.x <-
-      loess(
-        x ~ as.numeric(date),
-        data = dnew,
-        span = span,
-        na.action = "na.exclude",
-        control = loess.control(surface = "direct")
-      )
-    fit.y <-
-      loess(
-        y ~ as.numeric(date),
-        data = dnew,
-        span = span,
-        na.action = "na.exclude",
-        control = loess.control(surface = "direct")
-      )
-
-    ## Predict track, increments and stochastic innovations
-    ## for interp this predict call needs a newdata = all dates ( interp and obs combined times )
-    xs <-
-      cbind(predict(fit.x, newdata = data.frame(date = as.numeric(d.all$date))),
-            predict(fit.y, newdata = data.frame(date = as.numeric(d.all$date)))
-            )
-
-    if (is.null(parameters)) {
-      ## Estimate stochastic innovations
-      es <- xs[-1,] - xs[-nrow(xs),]
-
-      ## Estimate components of variance
-      V <- cov(es)
-      sigma <- sqrt(diag(V))
-      rho <- V[1, 2] / prod(sqrt(diag(V)))
-
-      parameters <-
-        list(
-          l_sigma = log(pmax(1e-08, sigma)),
-          l_rho_p = log((1 + rho) / (1 - rho)),
-          l_tau = c(0,0),
-          l_rho_o = 0,
-          l_tau_kf = 0,
-          X = xs
-        )
-    }
-
-    ## TMB - data list
-    fill <- rep(1, nrow(d.all))
-    if(data.class == "KF") {
-      data <-
-        list(
-          Y = cbind(d.all$x, d.all$y),
-          dt = dt,
-          isd = as.integer(d.all$isd),
-          obs_mod = 1,
-          m = d.all$smin,
-          M = d.all$smaj,
-          c = d.all$eor,
-          K = cbind(fill, fill)
-        )
-    } else if(data.class == "LS") {
-      data <-
-        list(
-          Y = cbind(d.all$x, d.all$y),
-          dt = dt,
-          isd = as.integer(d.all$isd),
-          obs_mod = 0,
-          m = fill,
-          M = fill,
-          c = fill,
-          K = cbind(d.all$amf_x,d.all$amf_y)
-        )
-    } else stop("Data class not recognised")
-
-    if (data.class == "KF" & !tau_kf) {
-      map <-
-        list(
-          l_tau_kf = factor(NA),
-          l_tau = factor(c(NA, NA)),
-          l_rho_o = factor(NA)
-        )
-    }
-    else if (data.class == "KF" & tau_kf) {
-      map <- list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
-    }
-    else if (data.class == "LS") {
-      map <- list(l_tau_kf = factor(NA))
-    }
-
-    ## TMB - create objective function
-    obj <-
-      MakeADFun(
-        data,
-        parameters,
-        map = map,
-        random = "X",
-        DLL = "ctrw",
-        hessian = TRUE,
-        silent = !verbose
-      )
-    obj$env$inner.control$trace <- verbose
-    obj$env$tracemgc <- verbose
-
-    ## Minimize objective function
-    opt <-
-      suppressWarnings(switch(
-        optim,
-        nlminb = nlminb(obj$par, obj$fn, obj$gr),
-        optim = do.call("optim", obj)
-      ))
-
-    ## Parameters, states and the fitted values
-    rep <- sdreport(obj)
-    fxd <- summary(rep, "report")
-    if(data.class == "KF" & tau_kf) fxd <- fxd[c(1:3,7), ]
-    else if(data.class == "KF" & !tau_kf) fxd <- fxd[1:3,]
-    else if(data.class == "LS") fxd <- fxd[1:6,]
-
-    rdm <-
-      matrix(summary(rep, "random"),
-             nrow(d.all),
-             4,
-             dimnames = list(NULL, c("x", "y", "x.se", "y.se")))
-
-    ## Fitted values (estimated locations at observation times)
-    fd <- as.data.frame(rdm) %>%
-      mutate(id = unique(d.all$id), date = d.all$date, isd = d.all$isd) %>%
-      select(id, date, x, y, x.se, y.se, isd) %>%
-      filter(isd) %>%
-      select(-isd)
-
-    ## Predicted values (estimated locations at regular time intervals, defined by `ts`)
-    pd <- as.data.frame(rdm) %>%
-      mutate(id = unique(d.all$id), date = d.all$date, isd = d.all$isd) %>%
-      select(id, date, x, y, x.se, y.se, isd) %>%
-      filter(!isd) %>%
-      select(-isd)
-
-    if (optim == "nlminb")
-      aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
-
-    out <- list(
-      call = call,
-      predicted = pd,
-      fitted = fd,
-      par = fxd,
-      data = d,
-      subset = ifelse(fit.to.subset, d$keep, NULL),
-      mmod = data.class,
-      ts = tsp/3600,
-      opt = opt,
-      tmb = obj,
-      rep = rep,
-      aic = aic
-    )
-    class(out) <- append("ctrwSSM", class(out))
-    out
-  }
+}
