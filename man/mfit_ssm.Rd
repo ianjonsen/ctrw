@@ -4,12 +4,16 @@
 \alias{mfit_ssm}
 \title{mfit_ssm}
 \usage{
-mfit_ssm(d, ...)
+mfit_ssm(d, span = 0.01, min.dist = 100, ...)
 }
 \arguments{
 \item{d}{input data.frame}
 
-\item{...}{arguments to be passed to prefilter and fit_ssm}
+\item{span}{degree of loess smoothing (range: 0 - 1) to identify potential outliers in prefilter}
+
+\item{min.dist}{minimum distance from track to define potential outlier locations}
+
+\item{...}{arguments to be passed to fit_ssm}
 }
 \description{
 Fit ssm to multiple individual tracks
