@@ -3,6 +3,7 @@
 ##' Prepare Argos data for fitting a ctrw model
 ##'
 ##' @importFrom lubridate ymd_hms
+##' @importFrom stats loess
 ##' @importFrom dplyr mutate distinct arrange filter select %>%
 ##'
 ##' @export

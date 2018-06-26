@@ -4,7 +4,7 @@
 \alias{prefilter}
 \title{Prefilter}
 \usage{
-prefilter(d, min.dist = 100, time.gap = NULL)
+prefilter(d, span = 0.01, min.dist = 100, time.gap = NULL)
 }
 \description{
 Prepare Argos data for fitting a ctrw model
