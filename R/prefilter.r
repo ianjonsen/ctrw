@@ -1,6 +1,13 @@
-##' Prefilter
+##' @title Prepare Argos data for fitting a ctrw model
 ##'
-##' Prepare Argos data for fitting a ctrw model
+##' @description \code{prefilter()} determines Argos data type (LS or KF); converts dates to POSIXt;
+##' identifies observations with duplicate dates; orders observations in time; converts
+##' longitudes from 0,360 to -180,180; projects lonlat coords to mercator x,y coords (in km);
+##' adds location error multiplication factors based on Argos location class (for type LS);
+##' and uses a loess smooth to identify potential outlier locations to be ignored when fitting
+##' the \code{ctrw} model
+##'
+##' @details Internal function
 ##'
 ##' @param d input data - must have 5 (LS), or 8 (KF) columns (see details)
 ##' @param span degree of loess smoothing (range: 0 - 1) to identify potential outliers

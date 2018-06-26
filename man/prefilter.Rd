@@ -2,7 +2,7 @@
 % Please edit documentation in R/prefilter.r
 \name{prefilter}
 \alias{prefilter}
-\title{Prefilter}
+\title{Prepare Argos data for fitting a ctrw model}
 \usage{
 prefilter(d, span = 0.01, min.dist = 100, time.gap = NULL)
 }
@@ -16,5 +16,13 @@ prefilter(d, span = 0.01, min.dist = 100, time.gap = NULL)
 \item{time.gap}{not currently implemented}
 }
 \description{
-Prepare Argos data for fitting a ctrw model
+\code{prefilter()} determines Argos data type (LS or KF); converts dates to POSIXt;
+identifies observations with duplicate dates; orders observations in time; converts
+longitudes from 0,360 to -180,180; projects lonlat coords to mercator x,y coords (in km);
+adds location error multiplication factors based on Argos location class (for type LS);
+and uses a loess smooth to identify potential outlier locations to be ignored when fitting
+the \code{ctrw} model
+}
+\details{
+Internal function
 }
