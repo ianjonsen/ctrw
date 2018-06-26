@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_ssm.R
 \name{fit_ssm}
 \alias{fit_ssm}
-\title{Fit a Continuous-time Random Walk filter to Argos data}
+\title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
 fit_ssm(d, span = 0.01, min.dist = 100, ...)
 }

@@ -57,7 +57,7 @@ prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
     mutate(y = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,2])
 
   f <- sum(!d$keep)
-  cat(sprintf("%d observations with duplicate dates will be ignored \n", f))
+#  cat(sprintf("%d observations with duplicate dates will be ignored \n", f))
 
   ## Prepare operations specific to data type
   switch(data.type,
@@ -121,7 +121,7 @@ prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
     ))
 
   f1 <- sum(!d$keep) - f
-  cat(sprintf("%d potential outlier locations with residuals > %d km will be ignored \n", f1, min.dist))
+#  cat(sprintf("%d potential outlier locations with residuals > %d km will be ignored \n", f1, min.dist))
 
   switch(data.type,
          LS = {
@@ -132,6 +132,6 @@ prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
            d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
            class(d) <- append(c("ctrwData", "KF"), class(d))
          })
-  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
+#  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
   return(d)
 }
