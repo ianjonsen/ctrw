@@ -1,4 +1,4 @@
-##' @title Fit a Continuous-time Random Walk filter to Argos data
+##' @title Fit a Continuous-time Random Walk state-space filter to Argos data
 ##'
 ##' @description fits a simple random walk in continuous time to filter Argos KF or LS data and predict
 ##' locations on a regular time step
