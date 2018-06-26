@@ -2,44 +2,49 @@
 % Please edit documentation in R/fit_ssm.R
 \name{fit_ssm}
 \alias{fit_ssm}
-\title{Correlated Random Walk Filter}
+\title{Fit a Continuous-time Random Walk filter to Argos data}
 \usage{
-fit_ssm(d, ts = 1, fit.to.subset = TRUE, parameters = NULL,
-  tau_kf = FALSE, optim = c("nlminb", "optim"), verbose = FALSE,
-  span = 0.1)
+fit_ssm(d, span = 0.01, min.dist = 100, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
+
+\item{span}{degree of loess smoothing (range: 0 - 1) to identify potential outliers in prefilter}
+
+\item{min.dist}{minimum distance from track to define potential outlier locations in prefilter}
+
+\item{...}{arguments passed to sfilter, described below:}
 
 \item{ts}{the time step, in hours, to predict to}
 
 \item{fit.to.subset}{a logical vector (default is TRUE) indicating whether the SSM is to be fit to the data subset determined by prefilter}
 
+\item{psi}{a logical scalar (default is FALSE) indicating whether the KF measurement error model is to be fit with a scale parameter for the error ellipses}
+
 \item{optim}{numerical optimizer}
 
 \item{verbose}{report progress during minimization}
 
-\item{span}{the span parameter for the loess fits used to estimate
-initial locations}
+\item{f}{the span parameter for the loess fits used to estimate initial location states}
 }
 \value{
 a list with components
+\item{\code{call}}{the matched call}
 \item{\code{predicted}}{a data.frame of predicted location states}
 \item{\code{fitted}}{a data.frame of fitted locations}
 \item{\code{par}}{model parameter summmary}
 \item{\code{data}}{the input data.frame}
 \item{\code{subset}}{the inpu subset vector}
-\item{\code{ts}}{the prediction time step}
+\item{\code{mem}}{the measurement error model used}
+\item{\code{ts}}{the prediction time interval}
 \item{\code{opt}}{the object returned by the optimizer}
 \item{\code{tmb}}{the TMB object}
+\item{\code{rep}}{TMB sdreport}
 \item{\code{aic}}{the calculated Akaike Information Criterion}
 }
 \description{
-Continuous-time Random Walk Filter
-}
-\details{
-Fit a simple random walk in continuous time to filter Argos KF of LS data and predict
-locations on a regular time step.
+fits a simple random walk in continuous time to filter Argos KF or LS data and predict
+locations on a regular time step
 }
 \examples{
 \dontrun{
@@ -57,5 +62,4 @@ fit.ls <- ellie \%>\%
     prefilter(., min.dist = 100) \%>\%
     fit_ssm(ts = 6)
 }
-
 }
