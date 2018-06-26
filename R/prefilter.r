@@ -2,6 +2,10 @@
 ##'
 ##' Prepare Argos data for fitting a ctrw model
 ##'
+##' @param d input data - must have 5 (LS), or 8 (KF) columns (see details)
+##' @param span degree of loess smoothing (range: 0 - 1) to identify potential outliers
+##' @param min.dist minimum distance from track to define potential outlier locations
+##' @param time.gap not currently implemented
 ##' @importFrom lubridate ymd_hms
 ##' @importFrom stats loess
 ##' @importFrom dplyr mutate distinct arrange filter select %>%
@@ -21,7 +25,7 @@ prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
         c("id", "date", "lc", "lon", "lat", "smaj", "smin", "eor")
       )))) stop("Unexpected column names in Data, type `?prefilter` for details on data format")
 
-  if(length(unique(d$id)) > 1) stop("Multiple individual tracks in Data, consider using dplyr::do to call prefilter")
+  if(length(unique(d$id)) > 1) stop("Multiple individual tracks in Data, use mfit_ssm")
 
   if(!is.null(d$id)) d <- d %>% mutate(id = as.character(id))
 

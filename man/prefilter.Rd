@@ -6,6 +6,15 @@
 \usage{
 prefilter(d, span = 0.01, min.dist = 100, time.gap = NULL)
 }
+\arguments{
+\item{d}{input data - must have 5 (LS), or 8 (KF) columns (see details)}
+
+\item{span}{degree of loess smoothing (range: 0 - 1) to identify potential outliers}
+
+\item{min.dist}{minimum distance from track to define potential outlier locations}
+
+\item{time.gap}{not currently implemented}
+}
 \description{
 Prepare Argos data for fitting a ctrw model
 }
