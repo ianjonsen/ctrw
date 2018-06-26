@@ -60,7 +60,8 @@ fit_ssm <-
     call <- match.call()
     optim <- match.arg(optim)
     data.class <- class(d)[2]
-    cat(", fitting", data.class, "measurement error model\n")
+    cat("\nfitting", data.class, "measurement error model\n")
+    if(data.class == "LS" & tau_kf) cat("tau_kf will be ignored\n")
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
@@ -176,7 +177,7 @@ fit_ssm <-
         )
     }
     else if (data.class == "KF" & tau_kf) {
-      map <- list(l_tau = factor(c(NA, NA)), l_rho_o = factor(NA))
+      map <- list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
     }
     else if (data.class == "LS") {
       map <- list(l_tau_kf = factor(NA))
@@ -207,7 +208,9 @@ fit_ssm <-
     ## Parameters, states and the fitted values
     rep <- sdreport(obj)
     fxd <- summary(rep, "report")
-    if(data.class == "KF") fxd <- fxd[c(1:3,7), ]
+    if(data.class == "KF" & tau_kf) fxd <- fxd[c(1:3,7), ]
+    else if(data.class == "KF" & !tau_kf) fxd <- fxd[1:3,]
+    else if(data.class == "LS") fxd <- fxd[1:6,]
 
     rdm <-
       matrix(summary(rep, "random"),
