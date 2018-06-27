@@ -50,16 +50,13 @@ locations on a regular time step
 \dontrun{
 require(dplyr)
 data(ellie)
-## fit KF measurement model
-fit <- ellie \%>\%
-    select(1:8) \%>\%
-    prefilter(., min.dist = 100) \%>\%
-    fit_ssm(ts = 6)
+## fit KF measurement error model
+fkf <- fit_ssm(ellie, min.dist = 150, ts = 12)
 
-## fit LS measurement model
-fit.ls <- ellie \%>\%
-    select(1:5) \%>\%
-    prefilter(., min.dist = 100) \%>\%
-    fit_ssm(ts = 6)
+## fit KFp measurement error model
+fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = TRUE)
+
+## fit LS measurement error model
+fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
 }
 }
