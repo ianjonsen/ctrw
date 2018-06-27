@@ -52,21 +52,17 @@ fit_ssm <- function(d,
                     )
 {
 
- fit <- d %>%
+  fit <- d %>%
     group_by(id) %>%
     do(pf = prefilter(., span = span, min.dist = min.dist)) %>%
     rowwise() %>%
-    do(ssm = try(sfilter(.$pf, ...), silent = TRUE))
+    do(ssm = try(sfilter(.$pf, ...), silent = TRUE)
+    )
 
- if (nrow(fit) > 1) {
-   fit %>%
-     ungroup() %>%
-     mutate(id = sapply(.$ssm, function(x)
-       x$predicted$id[1])
-       ) %>%
-     select(id, ssm)
- } else {
-   fit$ssm
- }
+  fit %>%
+    ungroup() %>%
+    mutate(id = sapply(.$ssm, function(x)
+      x$predicted$id[1])) %>%
+    select(id, ssm)
 
 }
