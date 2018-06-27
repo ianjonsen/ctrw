@@ -27,6 +27,7 @@
 ##' \item{\code{tmb}}{the TMB object}
 ##' \item{\code{rep}}{TMB sdreport}
 ##' \item{\code{aic}}{the calculated Akaike Information Criterion}
+##' \item{\code{time}}{the processing time for sfilter}
 ##'
 ##' @examples
 ##' \dontrun{
