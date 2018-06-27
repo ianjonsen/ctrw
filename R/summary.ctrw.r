@@ -23,7 +23,7 @@ summary.ctrwSSM <- function(x, digits = 3, ...) {
   cat("number of observations:", nbStates, "\n")
   cat("number of regular state estimates:", nbrStates, "\n")
   cat("time interval:", x$ts, "hours\n\n")
-  cat("Argos measurement error model:", mmod, "\n")
+  cat("measurement error model: Argos", mmod, "\n")
   cat("parameter estimates\n")
   cat("-------------------------\n")
   print(parm, digits = digits, justify = "right");cat("\n")
