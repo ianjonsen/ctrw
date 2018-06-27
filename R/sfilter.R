@@ -20,7 +20,7 @@ sfilter <-
            optim = c("nlminb", "optim"),
            verbose = FALSE,
            span = 0.1) {
-
+    st <- proc.time()
     call <- match.call()
     optim <- match.arg(optim)
     data.class <- class(d)[2]
@@ -211,7 +211,8 @@ sfilter <-
       opt = opt,
       tmb = obj,
       rep = rep,
-      aic = aic
+      aic = aic,
+      time = proc.time() - st
     )
     class(out) <- append("ctrwSSM", class(out))
     out
