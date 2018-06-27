@@ -24,7 +24,7 @@ sfilter <-
     call <- match.call()
     optim <- match.arg(optim)
     data.class <- class(d)[2]
-    cat("\nfitting", data.class, "measurement error model\n")
+ #   cat("\nfitting", data.class, "measurement error model\n")
     if(data.class == "LS" & psi) cat("psi will be ignored\n")
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
