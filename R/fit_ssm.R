@@ -61,14 +61,12 @@ fit_ssm <- function(d,
   if(!pf){
     fit <- fit %>%
       rowwise() %>%
-      do(ssm = try(sfilter(.$pf, ...), silent = TRUE))
+      do(ssm = try(sfilter(.$pf, ...), silent = TRUE)) %>%
+      ungroup() %>%
+      mutate(id = sapply(.$ssm, function(x)
+        x$predicted$id[1])) %>%
+      select(id, ssm)
   }
-
-  fit <- fit %>%
-    ungroup() %>%
-    mutate(id = sapply(.$ssm, function(x)
-      x$predicted$id[1])) %>%
-    select(id, ssm)
 
   fit
 }
