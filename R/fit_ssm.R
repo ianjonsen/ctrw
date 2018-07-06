@@ -8,8 +8,9 @@
 ##' @param min.dist minimum distance from track to define potential outlier locations in prefilter
 ##' @param ... arguments passed to sfilter, described below:
 ##' @param ts the time step, in hours, to predict to
-##' @param fit.to.subset a logical vector (default is TRUE) indicating whether the SSM is to be fit to the data subset determined by prefilter
-##' @param psi a logical scalar (default is FALSE) indicating whether the KF measurement error model is to be fit with a scale parameter for the error ellipses
+##' @param fit.to.subset fit the SSM to the data subset determined by prefilter (default is TRUE)
+##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (default is FALSE)
+##' @param pf just pre-filter the data, do not fit the ctrw (default is FALSE)
 ##' @param optim numerical optimizer
 ##' @param verbose report progress during minimization
 ##' @param f the span parameter for the loess fits used to estimate initial location states
@@ -59,10 +60,13 @@ fit_ssm <- function(d,
     do(ssm = try(sfilter(.$pf, ...), silent = TRUE)
     )
 
-  fit %>%
+  if(!pf) {
+  fit <- fit %>%
     ungroup() %>%
     mutate(id = sapply(.$ssm, function(x)
       x$predicted$id[1])) %>%
     select(id, ssm)
+  }
 
+  fit
 }

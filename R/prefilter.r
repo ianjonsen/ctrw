@@ -133,5 +133,6 @@ prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
            class(d) <- append(c("ctrwData", "KF"), class(d))
          })
 #  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
+
   return(d)
 }

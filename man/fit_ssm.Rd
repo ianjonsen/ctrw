@@ -17,9 +17,11 @@ fit_ssm(d, span = 0.01, min.dist = 100, ...)
 
 \item{ts}{the time step, in hours, to predict to}
 
-\item{fit.to.subset}{a logical vector (default is TRUE) indicating whether the SSM is to be fit to the data subset determined by prefilter}
+\item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
 
-\item{psi}{a logical scalar (default is FALSE) indicating whether the KF measurement error model is to be fit with a scale parameter for the error ellipses}
+\item{psi}{estimate scaling parameter for the KF measurement error model error ellipses (default is FALSE)}
+
+\item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
 
 \item{optim}{numerical optimizer}
 
@@ -41,6 +43,7 @@ a list with components
 \item{\code{tmb}}{the TMB object}
 \item{\code{rep}}{TMB sdreport}
 \item{\code{aic}}{the calculated Akaike Information Criterion}
+\item{\code{time}}{the processing time for sfilter}
 }
 \description{
 fits a simple random walk in continuous time to filter Argos KF or LS data and predict
