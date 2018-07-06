@@ -49,6 +49,7 @@
 fit_ssm <- function(d,
                     span = 0.01,
                     min.dist = 100,
+                    pf = FALSE,
                     ...
                     )
 {

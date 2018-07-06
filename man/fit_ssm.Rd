@@ -4,7 +4,7 @@
 \alias{fit_ssm}
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
-fit_ssm(d, span = 0.01, min.dist = 100, ...)
+fit_ssm(d, span = 0.01, min.dist = 100, pf = FALSE, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
@@ -13,6 +13,8 @@ fit_ssm(d, span = 0.01, min.dist = 100, ...)
 
 \item{min.dist}{minimum distance from track to define potential outlier locations in prefilter}
 
+\item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
+
 \item{...}{arguments passed to sfilter, described below:}
 
 \item{ts}{the time step, in hours, to predict to}
@@ -20,8 +22,6 @@ fit_ssm(d, span = 0.01, min.dist = 100, ...)
 \item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
 
 \item{psi}{estimate scaling parameter for the KF measurement error model error ellipses (default is FALSE)}
-
-\item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
 
 \item{optim}{numerical optimizer}
 
