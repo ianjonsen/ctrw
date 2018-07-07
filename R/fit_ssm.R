@@ -57,11 +57,17 @@ fit_ssm <- function(d,
   fit <- d %>%
     group_by(id) %>%
     do(pf = prefilter(., span = span, min.dist = min.dist))
+  if(pf){
+    fit <- do.call(rbind, fit$pf) %>%
+      tbl_df()
+  }
 
   if(!pf){
     fit <- fit %>%
       rowwise() %>%
-      do(ssm = try(sfilter(.$pf, ...), silent = TRUE)) %>%
+      do(ssm = try(sfilter(.$pf, ...), silent = TRUE))
+
+    fit <- fit %>%
       ungroup() %>%
       mutate(id = sapply(.$ssm, function(x)
         x$predicted$id[1])) %>%
