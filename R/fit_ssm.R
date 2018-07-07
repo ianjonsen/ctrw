@@ -43,7 +43,7 @@
 ##' ## fit LS measurement error model
 ##' fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
 ##' }
-##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate
+##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate tbl_df
 ##'
 ##' @export
 fit_ssm <- function(d,
