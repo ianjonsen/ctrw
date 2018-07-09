@@ -16,7 +16,7 @@
 ##' @param time.gap not currently implemented
 ##' @importFrom lubridate ymd_hms
 ##' @importFrom stats loess
-##' @importFrom dplyr mutate distinct arrange filter select %>%
+##' @importFrom dplyr mutate distinct arrange filter select %>% left_join
 ##'
 ##' @export
 
@@ -43,7 +43,6 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
 
   ##  convert dates to POSIXt
   ##  flag any duplicate date records,
-  ##  flag any records with smaj/smin = 0
   ##  order records by time,
   ##  set lc to ordered factor
   ##  convert lon from 0,360 to -180,180
@@ -51,13 +50,17 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
     mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
-    mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
-    mutate(keep = ifelse(smaj == 0 | smin == 0, FALSE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE)) %>%
     mutate(lon = ifelse(lon > 180, 180 - lon, lon)) %>%
     mutate(x = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,1]) %>%
     mutate(y = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,2])
+
+  if(data.type == "KF") {
+    ##  flag any records with smaj/smin = 0
+    d <- d %>%
+      mutate(keep = ifelse(smaj == 0 | smin == 0, FALSE, keep))
+  }
 
   f <- sum(!d$keep)
 #  cat(sprintf("%d observations with duplicate dates will be ignored \n", f))
