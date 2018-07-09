@@ -64,7 +64,6 @@ sfilter <-
       loess(
         x ~ as.numeric(date),
         data = dnew,
-        weights = dnew$smaj^-2,
         span = f,
         na.action = "na.exclude",
         control = loess.control(surface = "direct")
@@ -73,7 +72,6 @@ sfilter <-
       loess(
         y ~ as.numeric(date),
         data = dnew,
-        weights = dnew$smaj^-2,
         span = f,
         na.action = "na.exclude",
         control = loess.control(surface = "direct")

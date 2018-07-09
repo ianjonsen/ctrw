@@ -5,7 +5,7 @@
 \title{fit ctrw SSM to individual track data}
 \usage{
 sfilter(d, ts = 1, fit.to.subset = TRUE, parameters = NULL, psi = FALSE,
-  optim = c("nlminb", "optim"), verbose = FALSE, span = 0.1)
+  optim = c("nlminb", "optim"), verbose = FALSE, f = 0.1)
 }
 \description{
 Filter Argos LS or KF track data
