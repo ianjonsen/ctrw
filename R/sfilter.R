@@ -19,7 +19,7 @@ sfilter <-
            psi = FALSE,
            optim = c("nlminb", "optim"),
            verbose = FALSE,
-           span = 0.1) {
+           f = 0.1) {
     st <- proc.time()
     call <- match.call()
     optim <- match.arg(optim)
@@ -64,7 +64,8 @@ sfilter <-
       loess(
         x ~ as.numeric(date),
         data = dnew,
-        span = span,
+        weights = dnew$smaj^-2,
+        span = f,
         na.action = "na.exclude",
         control = loess.control(surface = "direct")
       )
@@ -72,7 +73,8 @@ sfilter <-
       loess(
         y ~ as.numeric(date),
         data = dnew,
-        span = span,
+        weights = dnew$smaj^-2,
+        span = f,
         na.action = "na.exclude",
         control = loess.control(surface = "direct")
       )
@@ -97,10 +99,10 @@ sfilter <-
         list(
           l_sigma = log(pmax(1e-08, sigma)),
           l_rho_p = log((1 + rho) / (1 - rho)),
-          l_tau = c(0,0),
-          l_rho_o = 0,
+          X = xs,
           l_psi = 0,
-          X = xs
+          l_tau = c(0,0),
+          l_rho_o = 0
         )
     }
 
@@ -159,6 +161,8 @@ sfilter <-
         silent = !verbose
       )
     obj$env$inner.control$trace <- verbose
+    obj$env$inner.control$smartsearch <- FALSE
+    obj$env$inner.control$maxit <- 1
     obj$env$tracemgc <- verbose
 
     ## Minimize objective function

@@ -71,7 +71,7 @@ fit_ssm <- function(d,
 
     fail <- which(sapply(fit$ssm, length) != 13)
     if(length(fail) > 0) {
-      cat(sprintf("\n%d convergence failures removed from results\n", length(fail)))
+      cat(sprintf("\n%d inner optimisation failures removed from results\n", length(fail)))
       fit <- fit %>% slice(-fail)
     }
 
