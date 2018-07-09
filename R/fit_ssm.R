@@ -5,6 +5,7 @@
 ##'
 ##' @param d a data frame of observations including Argos KF error ellipse info
 ##' @param span degree of loess smoothing (range: 0 - 1) to identify potential outliers in prefilter
+##' @param min.dt minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM
 ##' @param min.dist minimum distance from track to define potential outlier locations in prefilter
 ##' @param ... arguments passed to sfilter, described below:
 ##' @param ts the time step, in hours, to predict to
@@ -43,11 +44,12 @@
 ##' ## fit LS measurement error model
 ##' fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
 ##' }
-##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate tbl_df
+##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate tbl_df slice
 ##'
 ##' @export
 fit_ssm <- function(d,
-                    span = 0.01,
+                    span = 0.1,
+                    min.dt = 0,
                     min.dist = 100,
                     pf = FALSE,
                     ...
@@ -56,7 +58,7 @@ fit_ssm <- function(d,
 
   fit <- d %>%
     group_by(id) %>%
-    do(pf = prefilter(., span = span, min.dist = min.dist))
+    do(pf = prefilter(., span = span, min.dt = min.dt, min.dist = min.dist))
   if(pf){
     fit <- do.call(rbind, fit$pf) %>%
       tbl_df()
@@ -66,6 +68,12 @@ fit_ssm <- function(d,
     fit <- fit %>%
       rowwise() %>%
       do(ssm = try(sfilter(.$pf, ...), silent = TRUE))
+
+    fail <- which(sapply(fit$ssm, length) != 13)
+    if(length(fail) > 0) {
+      cat(sprintf("\n%d convergence failures removed from results\n", length(fail)))
+      fit <- fit %>% slice(-fail)
+    }
 
     fit <- fit %>%
       ungroup() %>%

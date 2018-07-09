@@ -4,12 +4,14 @@
 \alias{fit_ssm}
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
-fit_ssm(d, span = 0.01, min.dist = 100, pf = FALSE, ...)
+fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
 
 \item{span}{degree of loess smoothing (range: 0 - 1) to identify potential outliers in prefilter}
+
+\item{min.dt}{minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM}
 
 \item{min.dist}{minimum distance from track to define potential outlier locations in prefilter}
 

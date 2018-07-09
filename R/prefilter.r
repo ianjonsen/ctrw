@@ -11,6 +11,7 @@
 ##'
 ##' @param d input data - must have 5 (LS), or 8 (KF) columns (see details)
 ##' @param span degree of loess smoothing (range: 0 - 1) to identify potential outliers
+##' @param min.dt minimum allowable time difference between observations; dt < min.dt will be ignored by the SSM
 ##' @param min.dist minimum distance from track to define potential outlier locations
 ##' @param time.gap not currently implemented
 ##' @importFrom lubridate ymd_hms
@@ -19,7 +20,7 @@
 ##'
 ##' @export
 
-prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
+prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NULL) {
 
   # check input data
   if(!ncol(d) %in% c(5,8)) stop("Data can only have 5 (for LS data) or 8 (for KF data) columns")
@@ -48,7 +49,7 @@ prefilter <- function(d, span = 0.01, min.dist = 100, time.gap = NULL) {
   ##  reproject lon,lat to x,y in km
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
-    mutate(keep = difftime(date, lag(date), units = "secs") > 0) %>%
+    mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
     mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE)) %>%
