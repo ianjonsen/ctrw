@@ -25,7 +25,7 @@ sfilter <-
     optim <- match.arg(optim)
     data.class <- class(d)[2]
  #   cat("\nfitting", data.class, "measurement error model\n")
-    if(data.class == "LS" & psi) cat("psi will be ignored\n")
+    if(data.class == "LS" & psi != 0) cat("psi will be ignored\n")
 
     if(!psi %in% 0:2) stop("psi argument must be 0, 1, or 2 - see ?fit_ssm")
 
@@ -152,7 +152,7 @@ sfilter <-
       map <- list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
     }
     else if (data.class == "LS") {
-      map <- list(l_psi = factor(NA))
+      map <- list(l_psi = factor(c(NA,NA)))
     }
 
     ## TMB - create objective function
