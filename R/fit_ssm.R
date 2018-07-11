@@ -10,7 +10,7 @@
 ##' @param ... arguments passed to sfilter, described below:
 ##' @param ts the time step, in hours, to predict to
 ##' @param fit.to.subset fit the SSM to the data subset determined by prefilter (default is TRUE)
-##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (default is FALSE)
+##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for both ellipse axes; 2 = separate psi for each axis)
 ##' @param pf just pre-filter the data, do not fit the ctrw (default is FALSE)
 ##' @param optim numerical optimizer
 ##' @param verbose report progress during minimization
@@ -39,7 +39,7 @@
 ##' fkf <- fit_ssm(ellie, min.dist = 150, ts = 12)
 ##'
 ##' ## fit KFp measurement error model
-##' fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = TRUE)
+##' fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = 1)
 ##'
 ##' ## fit LS measurement error model
 ##' fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
