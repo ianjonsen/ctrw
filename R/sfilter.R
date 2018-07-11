@@ -16,7 +16,7 @@ sfilter <-
            ts = 1,
            fit.to.subset = TRUE,
            parameters = NULL,
-           psi = FALSE,
+           psi = 0,
            optim = c("nlminb", "optim"),
            verbose = FALSE,
            f = 0.1) {
@@ -26,6 +26,8 @@ sfilter <-
     data.class <- class(d)[2]
  #   cat("\nfitting", data.class, "measurement error model\n")
     if(data.class == "LS" & psi) cat("psi will be ignored\n")
+
+    if(!psi %in% 0:2) stop("psi argument must be 0, 1, or 2 - see ?fit_ssm")
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
@@ -93,12 +95,18 @@ sfilter <-
       sigma <- sqrt(diag(V))
       rho <- V[1, 2] / prod(sqrt(diag(V)))
 
+
+      if(psi == 1) {
+        l_psi = 0
+      } else {
+        l_psi = c(0,0)
+      }
       parameters <-
         list(
           l_sigma = log(pmax(1e-08, sigma)),
           l_rho_p = log((1 + rho) / (1 - rho)),
           X = xs,
-          l_psi = 0,
+          l_psi = l_psi,
           l_tau = c(0,0),
           l_rho_o = 0
         )
@@ -132,15 +140,15 @@ sfilter <-
         )
     } else stop("Data class not recognised")
 
-    if (data.class == "KF" & !psi) {
+    if (data.class == "KF" & psi == 0) {
       map <-
         list(
-          l_psi = factor(NA),
+          l_psi = factor(c(NA, NA)),
           l_tau = factor(c(NA, NA)),
           l_rho_o = factor(NA)
         )
     }
-    else if (data.class == "KF" & psi) {
+    else if (data.class == "KF" & psi != 0) {
       map <- list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
     }
     else if (data.class == "LS") {
@@ -174,7 +182,7 @@ sfilter <-
     ## Parameters, states and the fitted values
     rep <- sdreport(obj)
     fxd <- summary(rep, "report")
-    if(data.class == "KF" & psi) fxd <- fxd[c(1:3,7), ]
+    if(data.class == "KF" & psi) fxd <- fxd[c(1:3,7:8), ]
     else if(data.class == "KF" & !psi) fxd <- fxd[1:3,]
     else if(data.class == "LS") fxd <- fxd[1:6,]
 
