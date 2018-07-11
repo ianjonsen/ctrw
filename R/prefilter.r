@@ -33,7 +33,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
         c("id", "date", "lc", "lon", "lat", "smaj", "smin", "eor")
       )))) stop("Unexpected column names in Data, type `?prefilter` for details on data format")
 
-  if(length(unique(d$id)) > 1) stop("Multiple individual tracks in Data, use mfit_ssm")
+  if(length(unique(d$id)) > 1) stop("Multiple individual tracks in Data, use fit_ssm")
 
   if(!is.null(d$id)) d <- d %>% mutate(id = as.character(id))
 
@@ -50,6 +50,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
     mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
+    mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE)) %>%
     mutate(lon = ifelse(lon > 180, 180 - lon, lon)) %>%
