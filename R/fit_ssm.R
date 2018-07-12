@@ -67,18 +67,17 @@ fit_ssm <- function(d,
   if(!pf){
     fit <- fit %>%
       rowwise() %>%
-      do(ssm = try(sfilter(.$pf, ...), silent = TRUE))
+      do(ssm = sfilter(.$pf, ...), silent = TRUE)
 
-    fail <- which(sapply(fit$ssm, length) != 13)
+    fail <- which(sapply(fit$ssm, length) == 6)
     if(length(fail) > 0) {
-      cat(sprintf("\n%d inner optimisation failures removed from results\n", length(fail)))
-      fit <- fit %>% slice(-fail)
+      cat(sprintf("\n%d optimisation failures\n", length(fail)))
     }
 
     fit <- fit %>%
       ungroup() %>%
       mutate(id = sapply(.$ssm, function(x)
-        x$predicted$id[1])) %>%
+        x$data$id[1])) %>%
       select(id, ssm)
   }
 
