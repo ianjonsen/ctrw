@@ -17,9 +17,11 @@ sfilter <-
            fit.to.subset = TRUE,
            parameters = NULL,
            psi = 0,
-           optim = c("nlminb", "optim"),
+           optim = c("optim", "nlminb"),
            verbose = FALSE,
-           f = 0.1) {
+           f = 0.1,
+           inner.control = NULL,
+           bounds = FALSE) {
     st <- proc.time()
     call <- match.call()
     optim <- match.arg(optim)
@@ -105,31 +107,33 @@ sfilter <-
         list(
           l_sigma = log(pmax(1e-08, sigma)),
           l_rho_p = log((1 + rho) / (1 - rho)),
+#          l_sigma = c(0,0),
+#          l_rho_p = 0,
           X = xs,
           l_psi = l_psi,
           l_tau = c(0,0),
           l_rho_o = 0
         )
     }
-
-    lubx <- extendrange(dnew$x, f = 0.2)
-    luby <- extendrange(dnew$y, f = 0.2)
-    # Set bounds for all parameter
-    L = list(
-      l_sigma = c(-20, -20),
-      l_rho_p = -20,
-      l_psi = rep(-4, length(l_psi)),
-      l_tau = c(-20, -20),
-      l_rho_o = -20
-    )
-    U = list(
-      l_sigma = c(20, 20),
-      l_rho_p = 20,
-      l_psi = rep(4, length(l_psi)),
-      l_tau = c(20, 20),
-      l_rho_o = 20
-    )
-
+    if (bounds) {
+      lubx <- extendrange(dnew$x, f = 0.2)
+      luby <- extendrange(dnew$y, f = 0.2)
+      # Set bounds for all parameter
+      L = list(
+        l_sigma = c(-20,-20),
+        l_rho_p = -20,
+        l_psi = rep(-5, length(l_psi)),
+        l_tau = c(-20,-20),
+        l_rho_o = -20
+      )
+      U = list(
+        l_sigma = c(20, 20),
+        l_rho_p = 20,
+        l_psi = rep(5, length(l_psi)),
+        l_tau = c(20, 20),
+        l_rho_o = 20
+      )
+    }
     ## TMB - data list
     fill <- rep(1, nrow(d.all))
     if(data.class == "KF") {
@@ -172,13 +176,21 @@ sfilter <-
     else if (data.class == "LS") {
       map <- list(l_psi = factor(c(NA,NA)))
     }
-
-    # Remove inactive parameters from bounds
-    member <- function(x,y) !is.na(match(x,y))
-    L <- unlist(L[!member(names(L),names(map))])
-    U <- unlist(U[!member(names(U),names(map))])
+    if(bounds) {
+      # Remove inactive parameters from bounds
+      member <- function(x, y)
+        ! is.na(match(x, y))
+      L <- unlist(L[!member(names(L), names(map))])
+      U <- unlist(U[!member(names(U), names(map))])
+    } else {
+      L <- -Inf
+      U <- Inf
+    }
 
 ## TMB - create objective function
+    if(is.null(inner.control)) {
+      inner.control <- list(maxit = 1, smartsearch = FALSE)
+    }
     obj <-
       MakeADFun(
         data,
@@ -187,27 +199,37 @@ sfilter <-
         random = "X",
         DLL = "ctrw",
         hessian = TRUE,
-        silent = !verbose
+        silent = !verbose,
+        inner.control = inner.control
       )
-    obj$env$inner.control$trace <- verbose
-    obj$env$inner.control$smartsearch <- FALSE
-    obj$env$inner.control$maxit <- 1
+#    newtonOption(obj, trace = verbose, smartsearch = TRUE)
+#    obj$env$inner.control$trace <- verbose
+#    obj$env$inner.control$smartsearch <- FALSE
+#    obj$env$inner.control$maxit <- 1
     obj$env$tracemgc <- verbose
+
+    myfn = function(x){print("pars:"); print(x); obj$fn(x)}
 
     ## Minimize objective function
     opt <-
-      suppressWarnings(switch(
+      try(suppressWarnings(switch(
         optim,
-        nlminb = nlminb(obj$par, obj$fn, obj$gr, lower=L, upper=U),
-        optim = do.call("optim", obj)
-      ))
+        nlminb = nlminb(obj$par, obj$fn, obj$gr, lower=L, upper=U), #myfn
+        optim = do.call(optim, args = list(par = obj$par, fn = obj$fn, gr = obj$gr, method = "L-BFGS-B")) #myfn
+      )))
 
+  ## if error then exit with limited output to aid debugging
+  if (class(opt) != "try-error") {
     ## Parameters, states and the fitted values
     rep <- sdreport(obj)
     fxd <- summary(rep, "report")
-    if(data.class == "KF" & psi) fxd <- fxd[c(1:3,7:8), ]
-    else if(data.class == "KF" & !psi) fxd <- fxd[1:3,]
-    else if(data.class == "LS") fxd <- fxd[1:6,]
+    if (data.class == "KF" & psi != 0) {
+      fxd <- fxd[c(1:3, 7:8), ]
+    } else if (data.class == "KF" & psi == 0) {
+      fxd <- fxd[1:3,]
+    } else if (data.class == "LS") {
+      fxd <- fxd[1:6,]
+    }
 
     rdm <-
       matrix(summary(rep, "random"),
@@ -217,36 +239,53 @@ sfilter <-
 
     ## Fitted values (estimated locations at observation times)
     fd <- as.data.frame(rdm) %>%
-      mutate(id = unique(d.all$id), date = d.all$date, isd = d.all$isd) %>%
+      mutate(id = unique(d.all$id),
+             date = d.all$date,
+             isd = d.all$isd) %>%
       select(id, date, x, y, x.se, y.se, isd) %>%
       filter(isd) %>%
       select(-isd)
 
     ## Predicted values (estimated locations at regular time intervals, defined by `ts`)
     pd <- as.data.frame(rdm) %>%
-      mutate(id = unique(d.all$id), date = d.all$date, isd = d.all$isd) %>%
+      mutate(id = unique(d.all$id),
+             date = d.all$date,
+             isd = d.all$isd) %>%
       select(id, date, x, y, x.se, y.se, isd) %>%
       filter(!isd) %>%
       select(-isd)
 
-    if (optim == "nlminb")
+    if (optim == "nlminb") {
       aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
-
+    } else {
+      aic <- aic <- 2 * length(opt[["par"]]) + 2 * opt[["value"]]
+    }
     out <- list(
       call = call,
       predicted = pd,
       fitted = fd,
       par = fxd,
       data = d,
-      subset = ifelse(fit.to.subset, d$keep, NULL),
+      inits = parameters,
       mmod = data.class,
-      ts = tsp/3600,
+      ts = tsp / 3600,
       opt = opt,
       tmb = obj,
       rep = rep,
       aic = aic,
       time = proc.time() - st
     )
+  } else {
+    out <- list(
+      call = call,
+      data = d,
+      inits = parameters,
+      mmod = data.class,
+      ts = tsp / 3600,
+      tmb = obj
+    )
+  }
     class(out) <- append("ctrwSSM", class(out))
+
     out
   }
