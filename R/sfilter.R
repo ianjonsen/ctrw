@@ -112,6 +112,24 @@ sfilter <-
         )
     }
 
+    lubx <- extendrange(dnew$x, f = 0.2)
+    luby <- extendrange(dnew$y, f = 0.2)
+    # Set bounds for all parameter
+    L = list(
+      l_sigma = c(-20, -20),
+      l_rho_p = -20,
+      l_psi = rep(-4, length(l_psi)),
+      l_tau = c(-20, -20),
+      l_rho_o = -20
+    )
+    U = list(
+      l_sigma = c(20, 20),
+      l_rho_p = 20,
+      l_psi = rep(4, length(l_psi)),
+      l_tau = c(20, 20),
+      l_rho_o = 20
+    )
+
     ## TMB - data list
     fill <- rep(1, nrow(d.all))
     if(data.class == "KF") {
@@ -155,7 +173,12 @@ sfilter <-
       map <- list(l_psi = factor(c(NA,NA)))
     }
 
-    ## TMB - create objective function
+    # Remove inactive parameters from bounds
+    member <- function(x,y) !is.na(match(x,y))
+    L <- unlist(L[!member(names(L),names(map))])
+    U <- unlist(U[!member(names(U),names(map))])
+
+## TMB - create objective function
     obj <-
       MakeADFun(
         data,
@@ -175,7 +198,7 @@ sfilter <-
     opt <-
       suppressWarnings(switch(
         optim,
-        nlminb = nlminb(obj$par, obj$fn, obj$gr),
+        nlminb = nlminb(obj$par, obj$fn, obj$gr, lower=L, upper=U),
         optim = do.call("optim", obj)
       ))
 
