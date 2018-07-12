@@ -17,7 +17,7 @@ sfilter <-
            fit.to.subset = TRUE,
            parameters = NULL,
            psi = 0,
-           optim = c("optim", "nlminb"),
+           optim = c("nlminb","optim"),
            verbose = FALSE,
            f = 0.1,
            inner.control = NULL,
