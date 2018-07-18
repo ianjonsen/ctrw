@@ -20,8 +20,8 @@ sfilter <-
            optim = c("nlminb","optim"),
            verbose = FALSE,
            f = 0.1,
-           inner.control = NULL,
-           bounds = FALSE) {
+           inner.control = NULL
+           ) {
     st <- proc.time()
     call <- match.call()
     optim <- match.arg(optim)
@@ -29,7 +29,7 @@ sfilter <-
  #   cat("\nfitting", data.class, "measurement error model\n")
     if(data.class == "LS" & psi != 0) cat("psi will be ignored\n")
 
-    if(!psi %in% 0:2) stop("psi argument must be 0, 1, or 2 - see ?fit_ssm")
+    if(!psi %in% 0:1) stop("psi argument must be 0, or 1 - see ?fit_ssm")
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
@@ -97,43 +97,17 @@ sfilter <-
       sigma <- sqrt(diag(V))
       rho <- V[1, 2] / prod(sqrt(diag(V)))
 
-
-      if(psi == 1) {
-        l_psi = 0
-      } else {
-        l_psi = c(0,0)
-      }
       parameters <-
         list(
           l_sigma = log(pmax(1e-08, sigma)),
           l_rho_p = log((1 + rho) / (1 - rho)),
-#          l_sigma = c(0,0),
-#          l_rho_p = 0,
           X = xs,
-          l_psi = l_psi,
+          l_psi = 0,
           l_tau = c(0,0),
           l_rho_o = 0
         )
     }
-    if (bounds) {
-      lubx <- extendrange(dnew$x, f = 0.2)
-      luby <- extendrange(dnew$y, f = 0.2)
-      # Set bounds for all parameter
-      L = list(
-        l_sigma = c(-20,-20),
-        l_rho_p = -20,
-        l_psi = rep(-5, length(l_psi)),
-        l_tau = c(-20,-20),
-        l_rho_o = -20
-      )
-      U = list(
-        l_sigma = c(20, 20),
-        l_rho_p = 20,
-        l_psi = rep(5, length(l_psi)),
-        l_tau = c(20, 20),
-        l_rho_o = 20
-      )
-    }
+
     ## TMB - data list
     fill <- rep(1, nrow(d.all))
     if(data.class == "KF") {
@@ -165,26 +139,16 @@ sfilter <-
     if (data.class == "KF" & psi == 0) {
       map <-
         list(
-          l_psi = factor(c(NA, NA)),
+          l_psi = factor(NA),
           l_tau = factor(c(NA, NA)),
           l_rho_o = factor(NA)
         )
     }
-    else if (data.class == "KF" & psi != 0) {
+    else if (data.class == "KF" & psi == 1) {
       map <- list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
     }
     else if (data.class == "LS") {
-      map <- list(l_psi = factor(c(NA,NA)))
-    }
-    if(bounds) {
-      # Remove inactive parameters from bounds
-      member <- function(x, y)
-        ! is.na(match(x, y))
-      L <- unlist(L[!member(names(L), names(map))])
-      U <- unlist(U[!member(names(U), names(map))])
-    } else {
-      L <- -Inf
-      U <- Inf
+      map <- list(l_psi = factor(NA))
     }
 
 ## TMB - create objective function
@@ -208,23 +172,24 @@ sfilter <-
 #    obj$env$inner.control$maxit <- 1
     obj$env$tracemgc <- verbose
 
-    myfn = function(x){print("pars:"); print(x); obj$fn(x)}
+## add par values to trace if verbose = TRUE
+#    myfn <- function(x){print("pars:"); print(x); obj$fn(x)}
 
     ## Minimize objective function
     opt <-
-      try(suppressWarnings(switch(
+      suppressWarnings(switch(
         optim,
-        nlminb = nlminb(obj$par, obj$fn, obj$gr, lower=L, upper=U), #myfn
-        optim = do.call(optim, args = list(par = obj$par, fn = obj$fn, gr = obj$gr, method = "L-BFGS-B")) #myfn
-      )))
+        nlminb = try(nlminb(obj$par, obj$fn, obj$gr)), #myfn
+        optim = try(do.call(optim, args = list(par = obj$par, fn = obj$fn, gr = obj$gr, method = "L-BFGS-B"))) #myfn
+      ))
 
   ## if error then exit with limited output to aid debugging
   if (class(opt) != "try-error") {
     ## Parameters, states and the fitted values
     rep <- sdreport(obj)
     fxd <- summary(rep, "report")
-    if (data.class == "KF" & psi != 0) {
-      fxd <- fxd[c(1:3, 7:8), ]
+    if (data.class == "KF" & psi == 1) {
+      fxd <- fxd[c(1:3, 7), ]
     } else if (data.class == "KF" & psi == 0) {
       fxd <- fxd[1:3,]
     } else if (data.class == "LS") {
