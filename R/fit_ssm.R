@@ -10,9 +10,9 @@
 ##' @param ... arguments passed to sfilter, described below:
 ##' @param ts the time step, in hours, to predict to
 ##' @param fit.to.subset fit the SSM to the data subset determined by prefilter (default is TRUE)
-##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for both ellipse axes; 2 = separate psi for each axis)
+##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for semi-minor axis)
 ##' @param pf just pre-filter the data, do not fit the ctrw (default is FALSE)
-##' @param optim numerical optimizer
+##' @param optim numerical optimizer (nlminb or optim)
 ##' @param verbose report progress during minimization
 ##' @param f the span parameter for the loess fits used to estimate initial location states
 ##'
