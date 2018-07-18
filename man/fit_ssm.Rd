@@ -23,9 +23,9 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
 
 \item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
 
-\item{psi}{estimate scaling parameter for the KF measurement error model error ellipses (default is FALSE)}
+\item{psi}{estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for semi-minor axis)}
 
-\item{optim}{numerical optimizer}
+\item{optim}{numerical optimizer (nlminb or optim)}
 
 \item{verbose}{report progress during minimization}
 
@@ -59,7 +59,7 @@ data(ellie)
 fkf <- fit_ssm(ellie, min.dist = 150, ts = 12)
 
 ## fit KFp measurement error model
-fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = TRUE)
+fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = 1)
 
 ## fit LS measurement error model
 fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
