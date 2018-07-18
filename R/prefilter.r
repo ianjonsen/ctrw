@@ -115,12 +115,12 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
  ## flag extreme outlier locations, if residuals > min.dist, to be ignored by SSM filter
   d <- d %>%
     mutate(keep = ifelse((
-      (res.x <= quantile(res.x, 0.001) |
-        res.x >= quantile(res.x, 0.999)) & abs(res.x) > min.dist
+      (res.x <= quantile(res.x, 0.01) |
+        res.x >= quantile(res.x, 0.99)) & abs(res.x) > min.dist
     ) |
       (
-        (res.y <= quantile(res.y, 0.001) |
-          res.y >= quantile(res.y, 0.999)) &
+        (res.y <= quantile(res.y, 0.01) |
+          res.y >= quantile(res.y, 0.99)) &
           abs(res.y) > min.dist
       ),
     FALSE,
