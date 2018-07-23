@@ -14,7 +14,7 @@
 sfilter <-
   function(d,
            ts = 1,
-           v = 0,
+           v = 2,
            fit.to.subset = TRUE,
            parameters = NULL,
            optim = c("nlminb","optim"),
@@ -29,7 +29,7 @@ sfilter <-
  #   cat("\nfitting", data.class, "measurement error model\n")
  #   if(data.class == "LS" & psi != 0) cat("psi will be ignored\n")
 
-    if(!v %in% 0:3) stop("v argument must be 0, 1, 2 or 3 - see ?fit_ssm")
+    if(!v %in% 1:2) stop("v argument must be 1 or 2 - see ?fit_ssm")
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
@@ -118,14 +118,10 @@ sfilter <-
           isd = as.integer(d.all$isd),
           obs_mod = 1,
           v = 1,
-          var_x = d.all$var.x,
-          var_y = d.all$var.y,
-          c_xy = d.all$cov.xy,
-          K = cbind(d.all$var.x/min(d.all$var.x),d.all$var.y/min(d.all$var.y)),
+          K = cbind(fill,fill),
           m = d.all$smin,
           M = d.all$smaj,
-          c = d.all$eor,
-          rho = d.all$rho
+          c = d.all$eor
         )
     } else if(data.class == "KF" & v == 2) {
       data <-
@@ -134,32 +130,11 @@ sfilter <-
           dt = dt,
           isd = as.integer(d.all$isd),
           obs_mod = 1,
-          v = 2,
-          var_x = d.all$var.x,
-          var_y = d.all$var.y,
-          c_xy = d.all$cov.xy,
-          K = cbind(d.all$var.x/min(d.all$var.x),d.all$var.y/min(d.all$var.y)),
+          v = 1,
+          K = cbind(fill,fill),
           m = d.all$smin,
           M = d.all$smaj,
-          c = d.all$eor,
-          rho = d.all$rho
-        )
-    } else if(data.class == "KF" & v == 3) {
-      data <-
-        list(
-          Y = cbind(d.all$x, d.all$y),
-          dt = dt,
-          isd = as.integer(d.all$isd),
-          obs_mod = 1,
-          v = 3,
-          var_x = d.all$var.x,
-          var_y = d.all$var.y,
-          c_xy = d.all$cov.xy,
-          K = cbind(d.all$var.x/min(d.all$var.x),d.all$var.y/min(d.all$var.y)),
-          m = d.all$smin,
-          M = d.all$smaj,
-          c = d.all$eor,
-          rho = d.all$rho
+          c = d.all$eor
         )
     } else if(data.class == "LS") {
       data <-
@@ -168,14 +143,9 @@ sfilter <-
           dt = dt,
           isd = as.integer(d.all$isd),
           obs_mod = 0,
-          v = 0,
-          var_x = fill,
-          var_y = fill,
-          c_xy = fill,
           m = fill,
           M = fill,
           c = fill,
-          rho = fill,
           K = cbind(d.all$amf_x,d.all$amf_y)
         )
     } else stop("Data class not recognised")
@@ -183,6 +153,7 @@ sfilter <-
     if(data.class == "KF" & v == 1) {
       map <-
         list(
+          l_psi = factor(NA),
           l_tau = factor(c(NA, NA)),
           l_rho_o = factor(NA)
         )
@@ -190,13 +161,9 @@ sfilter <-
     else if (data.class == "KF" & v == 2) {
       map <-
         list(
-          l_psi = factor(NA),
           l_tau = factor(c(NA, NA)),
           l_rho_o = factor(NA)
         )
-    }
-    else if (data.class == "KF" & v == 3) {
-      map <- list(l_psi = factor(NA), l_rho_o = factor(NA))
     }
     else if (data.class == "LS") {
       map <- list(l_psi = factor(NA))
@@ -230,7 +197,7 @@ sfilter <-
     opt <-
       suppressWarnings(switch(
         optim,
-        nlminb = try(nlminb(obj$par, myfn, obj$gr)), #myfn
+        nlminb = try(nlminb(obj$par, obj$fn, obj$gr)), #myfn
         optim = try(do.call(optim, args = list(par = obj$par, fn = obj$fn, gr = obj$gr, method = "L-BFGS-B"))) #myfn
       ))
 
@@ -241,11 +208,9 @@ sfilter <-
     fxd <- summary(rep, "report")
 
     if (data.class == "KF" & v == 1) {
-      fxd <- fxd[c(1:3, 7), ]
+      fxd <- fxd[1:3, ]
     } else if (data.class == "KF" & v == 2) {
-      fxd <- fxd[1:3,]
-    } else if (data.class == "KF" & v == 3) {
-      fxd <- fxd[c(1:3, 5:6)]
+      fxd <- fxd[c(1:3,7),]
     } else if (data.class == "LS") {
       fxd <- fxd[1:6,]
     }
