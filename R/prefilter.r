@@ -85,9 +85,14 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
          KF = {
            ##  convert error ellipse axes from m to km
            ##  convert ellipse orientation from deg to rad
+           ##  convert ellipses to var-covar & append to data
            d <- d %>%
              mutate(smaj = smaj / 1000, smin = smin / 1000) %>%
-             mutate(eor = eor / 180 * pi)
+             mutate(eor = eor / 180 * pi) %>%
+             mutate(var.x = (smaj / sqrt(2))^2 * sin(eor)^2 + (smin / sqrt(2))^2 * cos(eor)^2) %>%
+             mutate(var.y = (smaj / sqrt(2))^2 * cos(eor)^2 + (smin / sqrt(2))^2 * sin(eor)^2) %>%
+             mutate(cov.xy = (0.5 * (smaj^2 - smin^2)) * cos(eor) * sin(eor)) %>%
+             mutate(rho = cov.xy / (sqrt(var.x) * sqrt(var.y)))
          })
 
 
@@ -136,7 +141,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
            class(d) <- append(c("ctrwData", "LS"), class(d))
          },
          KF = {
-           d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
+           d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, var.x, var.y, cov.xy, rho, keep)
            class(d) <- append(c("ctrwData", "KF"), class(d))
          })
 #  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")

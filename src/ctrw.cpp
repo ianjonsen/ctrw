@@ -11,11 +11,17 @@ template<class Type>
     DATA_IVECTOR(isd);          //  indexes observations vs. interpolation points
 
     DATA_INTEGER(obs_mod);       //  indicates which obs error model to be used
+    DATA_INTEGER(v);            // indicates which KF error model variant to be used
 
     // for KF observation model
     DATA_VECTOR(m);             //  m is the semi-minor axis length
     DATA_VECTOR(M);             //  M is the semi-major axis length
     DATA_VECTOR(c);             //  c is the orientation of the error ellipse
+    // replace with var-covar calculated from Argos error ellipse info (in prefilter)
+    DATA_VECTOR(var_x);
+    DATA_VECTOR(var_y);
+    DATA_VECTOR(c_xy);
+    DATA_VECTOR(rho);
 
     // for LS observation model
     DATA_MATRIX(K);                 // error weighting factors for LS obs model
@@ -63,25 +69,35 @@ template<class Type>
     // observation model
     for(int i=0; i < Y.rows(); ++i) {
       if(isd(i) == 1) {
-        if(obs_mod == 0) {
+        if(obs_mod == 0 && v == 0) {
           // Argos Least Squares observations
           Type s = tau(0) * K(i,0);
           Type q = tau(1) * K(i,1);
           cov_obs(0,0) = pow(s, 2);
           cov_obs(1,1) = pow(q, 2);
-          cov_obs(0,1) = s * q * rho_o;
-          cov_obs(1,0) = cov_obs(0,1);
-        } else {
+          cov_obs(0,1) = rho_o * s * q;
+          cov_obs(1,0) = rho_o * s * q;
+        } else if(obs_mod == 1 && v == 1) {
           // Argos Kalman Filter observations
           Type s2c = sin(c(i)) * sin(c(i));  // sin2(c)
           Type c2c = cos(c(i)) * cos(c(i));  // cos2(c)
           Type M2  = (M(i) / sqrt(2)) * (M(i) / sqrt(2));
           Type m2 = (m(i) * psi / sqrt(2)) * (m(i) * psi / sqrt(2));
-
           cov_obs(0,0) = (M2 * s2c + m2 * c2c);
           cov_obs(1,1) = (M2 * c2c + m2 * s2c);
           cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i),2))) * cos(c(i)) * sin(c(i));
-          cov_obs(1,0) = cov_obs(0,1);
+        } else if(obs_mod == 1 && v == 2) {
+          cov_obs(0,0) = var_x(i);
+          cov_obs(1,1) = var_y(i);
+          cov_obs(0,1) = c_xy(i);
+          cov_obs(1,0) = c_xy(i);
+        } else {
+          Type s = tau(0) * K(i,0);
+          Type q = tau(1) * K(i,1);
+          cov_obs(0,0) = pow(s,2);
+          cov_obs(1,1) = pow(q,2);
+          cov_obs(0,1) = rho(i) * s * q;
+          cov_obs(1,0) = rho(i) * s * q;
         }
         nll_obs.setSigma(cov_obs);   // set up i-th obs cov matrix
 
