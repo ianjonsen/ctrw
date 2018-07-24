@@ -130,7 +130,7 @@ sfilter <-
           dt = dt,
           isd = as.integer(d.all$isd),
           obs_mod = 1,
-          v = 1,
+          v = 2,
           K = cbind(fill,fill),
           m = d.all$smin,
           M = d.all$smaj,
