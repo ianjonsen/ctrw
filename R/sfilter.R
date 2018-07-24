@@ -143,6 +143,7 @@ sfilter <-
           dt = dt,
           isd = as.integer(d.all$isd),
           obs_mod = 0,
+          v = 0,
           m = fill,
           M = fill,
           c = fill,
