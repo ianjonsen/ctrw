@@ -8,6 +8,7 @@
 ##' @importFrom TMB MakeADFun sdreport newtonOption
 ##' @importFrom stats loess loess.control cov sd predict nlminb
 ##' @importFrom dplyr mutate filter select full_join arrange lag %>%
+##' @importFrom tibble as_tibble
 ##'
 ##' @export
 
@@ -238,7 +239,8 @@ sfilter <-
              lat = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,2]) %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(isd) %>%
-      select(-isd)
+      select(-isd) %>%
+      as_tibble()
 
     ## Predicted values (estimated locations at regular time intervals, defined by `ts`)
     pd <- as.data.frame(rdm) %>%
@@ -249,7 +251,8 @@ sfilter <-
              lat = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,2]) %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(!isd) %>%
-      select(-isd)
+      select(-isd) %>%
+      as_tibble()
 
     if (optim == "nlminb") {
       aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
