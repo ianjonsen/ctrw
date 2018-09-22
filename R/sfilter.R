@@ -13,7 +13,7 @@
 
 sfilter <-
   function(d,
-           ts = 1,
+           ptime = 1,
            v = 2,
            fit.to.subset = TRUE,
            parameters = NULL,
@@ -42,14 +42,21 @@ sfilter <-
         mutate(isd = TRUE)
     }
 
-    ## Interpolation times - assume on ts-multiple of the hour
-    tsp <- ts * 3600
-    tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
-    index <- floor(tms)
-    ts <- data.frame(date = seq(trunc(d$date[1], "hour"), by = tsp, length.out = max(index) + 2))
+    if (length(ptime == 1)) {
+      ## Interpolation times - assume on ts-multiple of the hour
+      tsp <- ptime * 3600
+      tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
+      index <- floor(tms)
+      ptime <-
+        data.frame(date = seq(
+          trunc(d$date[1], "hour"),
+          by = tsp,
+          length.out = max(index) + 2
+        ))
+    }
 
     ## merge data and interpolation times
-    d.all <- full_join(dnew, ts, by = "date") %>%
+    d.all <- full_join(dnew, ptime, by = "date") %>%
       arrange(date) %>%
       mutate(isd = ifelse(is.na(isd), FALSE, isd)) %>%
       mutate(id = ifelse(is.na(id), na.omit(unique(id))[1], id))
@@ -253,7 +260,6 @@ sfilter <-
       data = d,
       inits = parameters,
       mmod = data.class,
-      ts = tsp / 3600,
       opt = opt,
       tmb = obj,
       rep = rep,
@@ -266,7 +272,6 @@ sfilter <-
       data = d,
       inits = parameters,
       mmod = data.class,
-      ts = tsp / 3600,
       tmb = obj
     )
   }

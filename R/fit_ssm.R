@@ -8,7 +8,7 @@
 ##' @param min.dt minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM
 ##' @param min.dist minimum distance from track to define potential outlier locations in prefilter
 ##' @param ... arguments passed to sfilter, described below:
-##' @param ts the time step, in hours, to predict to
+##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, can be specified as a POSIXt object.
 ##' @param fit.to.subset fit the SSM to the data subset determined by prefilter (default is TRUE)
 ##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for semi-minor axis)
 ##' @param pf just pre-filter the data, do not fit the ctrw (default is FALSE)
@@ -24,7 +24,6 @@
 ##' \item{\code{data}}{the input data.frame}
 ##' \item{\code{subset}}{the inpu subset vector}
 ##' \item{\code{mem}}{the measurement error model used}
-##' \item{\code{ts}}{the prediction time interval}
 ##' \item{\code{opt}}{the object returned by the optimizer}
 ##' \item{\code{tmb}}{the TMB object}
 ##' \item{\code{rep}}{TMB sdreport}
@@ -36,13 +35,13 @@
 ##' require(dplyr)
 ##' data(ellie)
 ##' ## fit KF measurement error model
-##' fkf <- fit_ssm(ellie, min.dist = 150, ts = 12)
+##' fkf <- fit_ssm(ellie, min.dist = 150, ptime = 12)
 ##'
 ##' ## fit KFp measurement error model
-##' fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = 1)
+##' fkfp <- fit_ssm(ellie, min.dist = 150, ptime = 12, psi = 1)
 ##'
 ##' ## fit LS measurement error model
-##' fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
+##' fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ptime = 12)
 ##' }
 ##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate tbl_df slice
 ##'
