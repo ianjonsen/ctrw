@@ -43,7 +43,7 @@ sfilter <-
         mutate(isd = TRUE)
     }
 
-    if (length(ptime == 1)) {
+    if (length(ptime) == 1) {
       ## Interpolation times - assume on ts-multiple of the hour
       tsp <- ptime * 3600
       tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
@@ -54,6 +54,8 @@ sfilter <-
           by = tsp,
           length.out = max(index) + 2
         ))
+    } else {
+      ptime <- data.frame(date = ptime)
     }
 
     ## merge data and interpolation times
