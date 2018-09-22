@@ -4,7 +4,8 @@
 \alias{prefilter}
 \title{Prepare Argos data for fitting a ctrw model}
 \usage{
-prefilter(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NULL)
+prefilter(d, span = 0.01, min.dt = 0, min.dist = 100,
+  time.gap = NULL)
 }
 \arguments{
 \item{d}{input data - must have 5 (LS), or 8 (KF) columns (see details)}

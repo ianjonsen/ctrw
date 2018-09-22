@@ -19,7 +19,7 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
 
 \item{...}{arguments passed to sfilter, described below:}
 
-\item{ts}{the time step, in hours, to predict to}
+\item{ptime}{the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, can be specified as a POSIXt object.}
 
 \item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
 
@@ -40,7 +40,6 @@ a list with components
 \item{\code{data}}{the input data.frame}
 \item{\code{subset}}{the inpu subset vector}
 \item{\code{mem}}{the measurement error model used}
-\item{\code{ts}}{the prediction time interval}
 \item{\code{opt}}{the object returned by the optimizer}
 \item{\code{tmb}}{the TMB object}
 \item{\code{rep}}{TMB sdreport}
@@ -56,12 +55,12 @@ locations on a regular time step
 require(dplyr)
 data(ellie)
 ## fit KF measurement error model
-fkf <- fit_ssm(ellie, min.dist = 150, ts = 12)
+fkf <- fit_ssm(ellie, min.dist = 150, ptime = 12)
 
 ## fit KFp measurement error model
-fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = 1)
+fkfp <- fit_ssm(ellie, min.dist = 150, ptime = 12, psi = 1)
 
 ## fit LS measurement error model
-fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
+fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ptime = 12)
 }
 }

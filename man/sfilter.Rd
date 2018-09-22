@@ -4,9 +4,9 @@
 \alias{sfilter}
 \title{fit ctrw SSM to individual track data}
 \usage{
-sfilter(d, ts = 1, fit.to.subset = TRUE, parameters = NULL, psi = 0,
-  optim = c("nlminb", "optim"), verbose = FALSE, f = 0.1,
-  inner.control = NULL)
+sfilter(d, ptime = 1, v = 2, fit.to.subset = TRUE,
+  parameters = NULL, optim = c("nlminb", "optim"), verbose = FALSE,
+  f = 0.1, inner.control = NULL)
 }
 \description{
 Filter Argos LS or KF track data
