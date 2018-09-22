@@ -234,7 +234,9 @@ sfilter <-
       mutate(id = unique(d.all$id),
              date = d.all$date,
              isd = d.all$isd) %>%
-      select(id, date, x, y, x.se, y.se, isd) %>%
+      mutate(lon = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,1],
+             lat = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,2]) %>%
+      select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(isd) %>%
       select(-isd)
 
@@ -243,7 +245,9 @@ sfilter <-
       mutate(id = unique(d.all$id),
              date = d.all$date,
              isd = d.all$isd) %>%
-      select(id, date, x, y, x.se, y.se, isd) %>%
+      mutate(lon = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,1],
+             lat = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,2]) %>%
+      select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(!isd) %>%
       select(-isd)
 
