@@ -14,8 +14,6 @@ extract <- function(x, what = "fitted", ...) {
              do.call(rbind, .) %>%
              tbl_df() %>%
              arrange(id) %>%
-             mutate(lon = mercator(cbind(x,y), r = 6378.137, inverse = TRUE)[,1],
-                    lat = mercator(cbind(x,y), r = 6378.137, inverse = TRUE)[,2]) %>%
              select(id, date, lon, lat, x, y, x.se, y.se)
          },
          predicted = {
@@ -23,8 +21,6 @@ extract <- function(x, what = "fitted", ...) {
              do.call(rbind, .) %>%
              tbl_df() %>%
              arrange(id) %>%
-             mutate(lon = mercator(cbind(x,y), r = 6378.137, inverse = TRUE)[,1],
-                    lat = mercator(cbind(x,y), r = 6378.137, inverse = TRUE)[,2]) %>%
              select(id, date, lon, lat, x, y, x.se, y.se)
          },
          data = {
