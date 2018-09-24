@@ -43,7 +43,8 @@
 ##' ## fit LS measurement error model
 ##' fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ptime = 12)
 ##' }
-##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate tbl_df slice
+##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate slice
+##' @importFrom tibble as_tibble
 ##'
 ##' @export
 fit_ssm <- function(d,
@@ -60,7 +61,7 @@ fit_ssm <- function(d,
     do(pf = prefilter(., span = span, min.dt = min.dt, min.dist = min.dist))
   if(pf){
     fit <- do.call(rbind, fit$pf) %>%
-      tbl_df()
+      as_tibble()
   }
 
   if(!pf){
