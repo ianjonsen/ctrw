@@ -1,6 +1,4 @@
 ##' @importFrom stats pnorm
-##' @importFrom lme4 nobars findbars
-##' @importFrom lme4 nobars
 ##' @importFrom dplyr %>%
 ##' @method summary ctrwSSM
 ##' @export
