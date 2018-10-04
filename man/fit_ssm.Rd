@@ -23,7 +23,7 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
 
 \item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
 
-\item{psi}{estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for semi-minor axis)}
+\item{psi}{estimate scaling parameter for the KF measurement error model error ellipses (1 = no psi, default; 2 = single psi for semi-minor axis)}
 
 \item{optim}{numerical optimizer (nlminb or optim)}
 
