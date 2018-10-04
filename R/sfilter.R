@@ -9,7 +9,8 @@
 ##' @importFrom stats loess loess.control cov sd predict nlminb
 ##' @importFrom dplyr mutate filter select full_join arrange lag %>%
 ##' @importFrom tibble as_tibble
-##' @importFrom rgdal project
+##' @importFrom sp spTransform CRS SpatialPoints
+##'
 ##'
 ##' @export
 
@@ -238,8 +239,11 @@ sfilter <-
       mutate(id = unique(d.all$id),
              date = d.all$date,
              isd = d.all$isd)
-    prj <- "+proj=longlat +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +no_defs"
-    fd[, c("lon", "lat")] <- as_tibble(project(as.matrix(fd[, c("x", "y")]), proj = prj))
+    ## reproject mercator x,y back to WGS84 longlat
+    xy <- SpatialPoints(fd[, c("x","y")], proj4string=CRS("+proj=merc +datum=WGS84 +units=km +no_defs"))
+    prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+    ll <- spTransform(xy, prj) %>% as_tibble()
+    fd[, c("lon","lat")] <- ll[,c("x","y")]
 
     fd <- fd %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
@@ -252,7 +256,11 @@ sfilter <-
       mutate(id = unique(d.all$id),
              date = d.all$date,
              isd = d.all$isd)
-    pd[, c("lon","lat")] <- as_tibble(project(as.matrix(pd[, c("x", "y")]), proj = prj))
+    ## reproject mercator x,y back to WGS84 longlat
+    xy <- SpatialPoints(pd[, c("x","y")], proj4string=CRS("+proj=merc +datum=WGS84 +units=km +no_defs"))
+    prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+    ll <- spTransform(xy, prj) %>% as_tibble()
+    pd[, c("lon","lat")] <- ll[,c("x","y")]
 
     pd <- pd %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
