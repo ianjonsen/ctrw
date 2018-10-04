@@ -73,7 +73,7 @@ template<class Type>
           cov_obs(0,1) = rho_o * s * q;
           cov_obs(1,0) = rho_o * s * q;
         }
-         else if(obs_mod == 1 && v == 1) {
+         else if(obs_mod == 1 && v == 0) {
           // Argos Kalman Filter observations
           Type s2c = pow(sin(c(i)), 2);
           Type c2c = pow(cos(c(i)), 2);
@@ -84,7 +84,7 @@ template<class Type>
           cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i),2))) * cos(c(i)) * sin(c(i));
           cov_obs(1,0) = cov_obs(0,1);
         }
-         else if(obs_mod == 1 && v == 2) {
+         else if(obs_mod == 1 && v == 1) {
           // Argos Kalman Filter observations
           Type s2c = pow(sin(c(i)), 2);
           Type c2c = pow(cos(c(i)), 2);
