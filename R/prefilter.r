@@ -17,6 +17,7 @@
 ##' @importFrom lubridate ymd_hms
 ##' @importFrom stats loess
 ##' @importFrom dplyr mutate distinct arrange filter select %>% left_join
+##' @importFrom rgdal project
 ##'
 ##' @export
 
@@ -46,16 +47,17 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   ##  order records by time,
   ##  set lc to ordered factor
   ##  convert lon from 0,360 to -180,180
-  ##  reproject lon,lat to x,y in km
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
     mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
     mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE)) %>%
-    mutate(lon = ifelse(lon > 180, 180 - lon, lon)) %>%
-    mutate(x = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,1]) %>%
-    mutate(y = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,2])
+    mutate(lon = ifelse(lon > 180, 180 - lon, lon))
+
+  ## reproject from longlat to mercator x,y (km)
+  prj <- "+proj=merc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs"
+  d[, c("x", "y")] <- as_tibble(project(as.matrix(d[, c("lon", "lat")]), proj = prj))
 
   if(data.type == "KF") {
     ##  flag any records with smaj/smin = 0

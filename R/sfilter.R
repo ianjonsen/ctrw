@@ -9,6 +9,7 @@
 ##' @importFrom stats loess loess.control cov sd predict nlminb
 ##' @importFrom dplyr mutate filter select full_join arrange lag %>%
 ##' @importFrom tibble as_tibble
+##' @importFrom rgdal project
 ##'
 ##' @export
 
@@ -236,9 +237,11 @@ sfilter <-
     fd <- as.data.frame(rdm) %>%
       mutate(id = unique(d.all$id),
              date = d.all$date,
-             isd = d.all$isd) %>%
-      mutate(lon = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,1],
-             lat = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,2]) %>%
+             isd = d.all$isd)
+    prj <- "+proj=longlat +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +no_defs"
+    fd[, c("lon", "lat")] <- as_tibble(project(as.matrix(fd[, c("x", "y")]), proj = prj))
+
+    fd <- fd %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(isd) %>%
       select(-isd) %>%
@@ -248,9 +251,10 @@ sfilter <-
     pd <- as.data.frame(rdm) %>%
       mutate(id = unique(d.all$id),
              date = d.all$date,
-             isd = d.all$isd) %>%
-      mutate(lon = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,1],
-             lat = geosphere::mercator(cbind(x, y), inverse = TRUE, r = 6378.137)[,2]) %>%
+             isd = d.all$isd)
+    pd[, c("lon","lat")] <- as_tibble(project(as.matrix(pd[, c("x", "y")]), proj = prj))
+
+    pd <- pd %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(!isd) %>%
       select(-isd) %>%
