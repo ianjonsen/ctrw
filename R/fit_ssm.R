@@ -7,8 +7,8 @@
 ##' @param span degree of loess smoothing (range: 0 - 1) to identify potential outliers in prefilter
 ##' @param min.dt minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM
 ##' @param min.dist minimum distance from track to define potential outlier locations in prefilter
+##' ##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, must be specified as a data.frame with id and POSIXt dates.
 ##' @param ... arguments passed to sfilter, described below:
-##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, can be specified as a POSIXt object.
 ##' @param fit.to.subset fit the SSM to the data subset determined by prefilter (default is TRUE)
 ##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for semi-minor axis)
 ##' @param pf just pre-filter the data, do not fit the ctrw (default is FALSE)
@@ -52,6 +52,7 @@ fit_ssm <- function(d,
                     min.dt = 0,
                     min.dist = 100,
                     pf = FALSE,
+                    ptime,
                     ...
                     )
 {
@@ -73,7 +74,7 @@ fit_ssm <- function(d,
   if(!pf){
     fit <- fit %>%
       rowwise() %>%
-      do(ssm = sfilter(.$pf, ...), silent = TRUE)
+      do(ssm = sfilter(.$pf, ptime, ...), silent = TRUE)
 
     fail <- which(sapply(fit$ssm, length) == 6)
     if(length(fail) > 0) {
