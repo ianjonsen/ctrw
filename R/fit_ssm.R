@@ -60,7 +60,7 @@ fit_ssm <- function(d,
   else if(length(ptime) > 1 & !is.data.frame(ptime))
     stop("\nptime must be a data.frame with id's when specifying multiple prediction times")
   else if(length(ptime) > 1 & is.data.frame(ptime)) {
-    if(sum(!names(ptime) %in% c("id","ptime")) > 0) stop("\n ptime names must be `id` and `ptime`")
+    if(sum(!names(ptime) %in% c("id","date")) > 0) stop("\n ptime names must be `id` and `date`")
   }
 
   fit <- d %>%

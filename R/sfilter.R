@@ -59,7 +59,7 @@ sfilter <-
     } else {
       ptime <- ptime %>%
         filter(id == unique(d$id)) %>%
-        data.frame(date = .$ptime)
+        data.frame(date = .$date)
     }
 
     ## merge data and interpolation times
