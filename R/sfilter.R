@@ -57,7 +57,9 @@ sfilter <-
           length.out = max(index) + 2
         ))
     } else {
-      ptime <- data.frame(date = ptime)
+      ptime <- ptime %>%
+        filter(id == unique(d$id)) %>%
+        data.frame(date = .$ptime)
     }
 
     ## merge data and interpolation times

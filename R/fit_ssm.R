@@ -55,6 +55,12 @@ fit_ssm <- function(d,
                     ...
                     )
 {
+  if(is.null(ptime)) print("\nNo ptime specified, using 6 h as a default time step")
+  else if(length(ptime) > 1 & !is.data.frame(ptime))
+    stop("\nptime must be a data.frame with id's when specifying multiple prediction times")
+  else if(length(ptime) > 1 & is.data.frame(ptime)) {
+    if(sum(!names(ptime) %in% c("id","ptime")) > 0) stop("\n ptime names must be `id` and `ptime`")
+  }
 
   fit <- d %>%
     group_by(id) %>%
