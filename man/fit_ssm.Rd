@@ -4,7 +4,8 @@
 \alias{fit_ssm}
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
-fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
+fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
+  ptime, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
@@ -13,13 +14,12 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
 
 \item{min.dt}{minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM}
 
-\item{min.dist}{minimum distance from track to define potential outlier locations in prefilter}
+\item{min.dist}{minimum distance from track to define potential outlier locations in prefilter
+##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, must be specified as a data.frame with id and POSIXt dates.}
 
 \item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
 
 \item{...}{arguments passed to sfilter, described below:}
-
-\item{ptime}{the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, can be specified as a POSIXt object.}
 
 \item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
 
