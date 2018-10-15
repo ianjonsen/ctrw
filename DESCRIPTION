@@ -17,6 +17,12 @@ LazyData: true
 RoxygenNote: 6.1.0
 Suggests: tidyverse,
     lubridate
-Imports: TMB (>= 1.7.13)
+Imports: 
+    TMB,
+    multidplyr,
+    dplyr,
+    tibble,
+    sp,
+    rgdal
 LinkingTo: TMB,
     RcppEigen

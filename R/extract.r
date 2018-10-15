@@ -1,4 +1,3 @@
-##' @importFrom geosphere mercator
 ##' @importFrom dplyr %>% tbl_df arrange mutate select
 ##' @importFrom tibble as_tibble
 ##' @export

@@ -5,7 +5,7 @@
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
 fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
-  ptime, ...)
+  ptime, parallel = FALSE, npc, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
@@ -18,6 +18,10 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
 ##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, must be specified as a data.frame with id and POSIXt dates.}
 
 \item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
+
+\item{parallel}{conduct filtering in parallel across npc cores (logical, default = FALSE)}
+
+\item{npc}{number of parallel clusters/cores (default = NULL)}
 
 \item{...}{arguments passed to sfilter, described below:}
 

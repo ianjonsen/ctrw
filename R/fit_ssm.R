@@ -8,6 +8,8 @@
 ##' @param min.dt minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM
 ##' @param min.dist minimum distance from track to define potential outlier locations in prefilter
 ##' ##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, must be specified as a data.frame with id and POSIXt dates.
+##' @param parallel conduct filtering in parallel across npc cores (logical, default = FALSE)
+##' @param npc number of parallel clusters/cores (default = NULL)
 ##' @param ... arguments passed to sfilter, described below:
 ##' @param fit.to.subset fit the SSM to the data subset determined by prefilter (default is TRUE)
 ##' @param psi estimate scaling parameter for the KF measurement error model error ellipses (0 = no psi, default; 1 = single psi for semi-minor axis)
@@ -43,7 +45,8 @@
 ##' ## fit LS measurement error model
 ##' fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ptime = 12)
 ##' }
-##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate slice
+##' @importFrom dplyr group_by do rowwise %>% ungroup select mutate slice collect
+##' @importFrom multidplyr create_cluster cluster_library partition
 ##' @importFrom tibble as_tibble
 ##'
 ##' @export
@@ -53,6 +56,8 @@ fit_ssm <- function(d,
                     min.dist = 100,
                     pf = FALSE,
                     ptime,
+                    parallel = FALSE,
+                    npc,
                     ...
                     )
 {
@@ -62,6 +67,8 @@ fit_ssm <- function(d,
   else if(length(ptime) > 1 & is.data.frame(ptime)) {
     if(sum(!names(ptime) %in% c("id","date")) > 0) stop("\n ptime names must be `id` and `date`")
   }
+  if(parallel & is.null(npc)) stop("\n npc - number of parallel clusters is not specified")
+
 
   fit <- d %>%
     group_by(id) %>%
@@ -71,16 +78,32 @@ fit_ssm <- function(d,
       as_tibble()
   }
 
-  if(!pf){
+  if (!pf & !parallel) {
     fit <- fit %>%
       rowwise() %>%
       do(ssm = sfilter(.$pf, ptime, ...), silent = TRUE)
 
     fail <- which(sapply(fit$ssm, length) == 6)
-    if(length(fail) > 0) {
+    if (length(fail) > 0) {
       cat(sprintf("\n%d optimisation failures\n", length(fail)))
     }
+  } else if (!pf & parallel) {
+    cluster <- create_cluster(npc)
+    cluster_library(cluster, packages = "ctrw")
+    fit <- fit %>%
+      rowwise() %>%
+      partition(id, cluster = cluster) %>%
+      do(ssm = try(ctrw::fit_ssm(.$pf, ptime, ...))
+      ) %>%
+      collect()
 
+    fail <- which(sapply(fit$ssm, length) == 6)
+    if (length(fail) > 0)
+    {
+      cat(sprintf("\n%d optimisation failures\n", length(fail)))
+    }
+  }
+  if(!pf) {
     fit <- fit %>%
       ungroup() %>%
       mutate(id = sapply(.$ssm, function(x)

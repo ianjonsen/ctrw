@@ -184,10 +184,12 @@ sfilter <-
       map <- list(l_psi = factor(NA))
     }
 
+
 ## TMB - create objective function
     if(is.null(inner.control)) {
-      inner.control <- list(maxit = 1, smartsearch = FALSE)
+      inner.control <- list(smartsearch = TRUE, maxit = 1000)
     }
+
     obj <-
       MakeADFun(
         data,
@@ -212,7 +214,7 @@ sfilter <-
     opt <-
       suppressWarnings(switch(
         optim,
-        nlminb = try(nlminb(obj$par, obj$fn, obj$gr)), #myfn
+        nlminb = try(nlminb(obj$par, obj$fn, obj$gr)), #myfn #obj$fn
         optim = try(do.call(optim, args = list(par = obj$par, fn = obj$fn, gr = obj$gr, method = "L-BFGS-B"))) #myfn
       ))
 
@@ -223,7 +225,7 @@ sfilter <-
     fxd <- summary(rep, "report")
 
     if (data.class == "KF" & psi == 0) {
-      fxd <- fxd[1:3, ]
+      fxd <- fxd[c(1:3), ]
     } else if (data.class == "KF" & psi == 1) {
       fxd <- fxd[c(1:3,7),]
     } else if (data.class == "LS") {
