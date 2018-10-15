@@ -28,7 +28,10 @@ sfilter <-
     st <- proc.time()
     call <- match.call()
     optim <- match.arg(optim)
-    data.class <- class(d)[2]
+
+    KFna <- sum(is.na(d$smaj)) / nrow(d)
+    data.class <- ifelse(KFna <= 0.5, "KF", "LS")
+
  #   cat("\nfitting", data.class, "measurement error model\n")
  #   if(data.class == "LS" & psi != 0) cat("psi will be ignored\n")
 
