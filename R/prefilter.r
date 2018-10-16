@@ -84,7 +84,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
            d <- d %>%
              left_join(., amf, by = "lc")
            if(sum(is.na(d$lc)) > 0) stop("\n NA's found in location class values,\n
-                                         perhaps your input lc's != c(3,2,1,0,`A`,`B`)?")
+                                         perhaps your input lc's != c(3,2,1,0,`A`,`B`,`Z`)?")
          },
          KF = {
            ##  convert error ellipse axes from m to km
