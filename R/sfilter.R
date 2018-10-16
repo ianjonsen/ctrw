@@ -29,11 +29,10 @@ sfilter <-
     call <- match.call()
     optim <- match.arg(optim)
 
-    KFna <- sum(is.na(d$smaj)) / nrow(d)
-    data.class <- ifelse(KFna <= 0.5, "KF", "LS")
-
- #   cat("\nfitting", data.class, "measurement error model\n")
- #   if(data.class == "LS" & psi != 0) cat("psi will be ignored\n")
+    if(ncol(d) == 11) data.class <- "KF"
+    else if(ncol(d) == 10) {
+      data.class <- "LS"
+    } else stop("\n unexpected number of columns in pre-filtered tibble")
 
     if(!psi %in% 0:1) stop("psi argument must be 0 or 1 - see ?fit_ssm")
 
@@ -49,7 +48,7 @@ sfilter <-
     }
 
     if (length(ptime) == 1) {
-      ## Interpolation times - assume on ts-multiple of the hour
+      ## Interpolation times - assume on ptime-multiple of the hour
       tsp <- ptime * 3600
       tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
       index <- floor(tms)
@@ -300,7 +299,8 @@ sfilter <-
       data = d,
       inits = parameters,
       mmod = data.class,
-      tmb = obj
+      tmb = obj,
+      errmsg = opt
     )
   }
     class(out) <- append("ctrwSSM", class(out))

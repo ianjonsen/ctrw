@@ -68,11 +68,11 @@ fit_ssm <- function(d,
   fit <- d %>%
     group_by(id) %>%
     do(pf = prefilter(., span = span, min.dt = min.dt, min.dist = min.dist))
+
   if(pf){
     fit <- do.call(rbind, fit$pf) %>%
       as_tibble()
-  }
-
+  } else {
     fit <- fit %>%
       rowwise() %>%
       do(ssm = try(sfilter(.$pf, ptime = ptime, ...), silent = TRUE))
@@ -82,7 +82,6 @@ fit_ssm <- function(d,
       cat(sprintf("\n%d optimisation failures\n", length(fail)))
     }
 
-  if(!pf) {
     fit <- fit %>%
       ungroup() %>%
       mutate(id = sapply(.$ssm, function(x)
