@@ -5,7 +5,7 @@
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
 fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
-  ptime, parallel = FALSE, npc, ...)
+  ptime, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
@@ -19,10 +19,6 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
 
 \item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
 
-\item{parallel}{conduct filtering in parallel across npc cores (logical, default = FALSE)}
-
-\item{npc}{number of parallel clusters/cores (default = NULL)}
-
 \item{...}{arguments passed to sfilter, described below:}
 
 \item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
@@ -32,8 +28,6 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
 \item{optim}{numerical optimizer (nlminb or optim)}
 
 \item{verbose}{report progress during minimization}
-
-\item{f}{the span parameter for the loess fits used to estimate initial location states}
 }
 \value{
 a list with components

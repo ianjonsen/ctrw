@@ -4,7 +4,7 @@
 ##' identifies observations with duplicate dates; (3) orders observations in time; (4) converts
 ##' longitudes from 0,360 to -180,180; (5) projects lonlat coords to mercator x,y coords (in km);
 ##' (6) adds location error multiplication factors based on Argos location class (for type LS);
-##' and (7) uses a loess smooth to identify potential outlier locations to be ignored when fitting
+##' and (7) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
 ##' the \code{ctrw} model
 ##'
 ##' @details Internal function
@@ -38,7 +38,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
 
   if(!is.null(d$id)) d <- d %>% mutate(id = as.character(id))
 
-  if(ncol(d) == 5) data.type <- "LS"
+  if(ncol(d) == 5 | (ncol(d) == 8 & sum(is.na(d$smaj))/nrow(d) == 1)) data.type <- "LS"
   else data.type <- "KF"
 
 
@@ -137,12 +137,11 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   switch(data.type,
          LS = {
            d <- d %>% select(id, date, lc, lon, lat, x, y, amf_x, amf_y, keep)
-           class(d) <- append(c("ctrwData", "LS"), class(d))
          },
          KF = {
            d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
-           class(d) <- append(c("ctrwData", "KF"), class(d))
          })
+  class(d) <- append("ctrwData", class(d))
 #  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
 
   return(d)

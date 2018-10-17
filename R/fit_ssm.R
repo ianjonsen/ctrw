@@ -14,7 +14,6 @@
 ##' @param pf just pre-filter the data, do not fit the ctrw (default is FALSE)
 ##' @param optim numerical optimizer (nlminb or optim)
 ##' @param verbose report progress during minimization
-##' @param f the span parameter for the loess fits used to estimate initial location states
 ##'
 ##' @return a list with components
 ##' \item{\code{call}}{the matched call}
@@ -53,8 +52,6 @@ fit_ssm <- function(d,
                     min.dist = 100,
                     pf = FALSE,
                     ptime,
-                    parallel = FALSE,
-                    npc = NULL,
                     ...
                     )
 {

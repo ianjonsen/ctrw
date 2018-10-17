@@ -6,7 +6,7 @@
 ##'
 ##' @useDynLib ctrw
 ##' @importFrom TMB MakeADFun sdreport newtonOption
-##' @importFrom stats loess loess.control cov sd predict nlminb
+##' @importFrom stats approx cov sd predict nlminb optim
 ##' @importFrom dplyr mutate filter select full_join arrange lag %>%
 ##' @importFrom tibble as_tibble
 ##' @importFrom sp spTransform CRS SpatialPoints
@@ -22,7 +22,6 @@ sfilter <-
            parameters = NULL,
            optim = c("nlminb","optim"),
            verbose = FALSE,
-           f = 0.1,
            inner.control = NULL
            ) {
     st <- proc.time()
@@ -78,31 +77,17 @@ sfilter <-
       as.numeric() / 24
     dt[1] <- 0
 
-    ## Predict track from loess smooths (state initial values)
-    ## TP -data here should only be at obs times.
-    fit.x <-
-      loess(
-        x ~ as.numeric(date),
-        data = dnew,
-        span = f,
-        na.action = "na.exclude",
-        control = loess.control(surface = "direct")
-      )
-    fit.y <-
-      loess(
-        y ~ as.numeric(date),
-        data = dnew,
-        span = f,
-        na.action = "na.exclude",
-        control = loess.control(surface = "direct")
-      )
+    ## use approx & MA filter to obtain state initial values
+        x.init <- approx(x = select(dnew, date, x), xout = d.all$date, rule = 2)$y
+        x.init <- stats::filter(x.init, rep(1,10)/10) %>% as.numeric()
+        x.init[1:4] <- x.init[5]
+        x.init[which(is.na(x.init))] <- x.init[which(is.na(x.init))[1]-1]
 
-    ## Predict track, increments and stochastic innovations
-    ## for interp this predict call needs a newdata = all dates ( interp and obs combined times )
-    xs <-
-      cbind(predict(fit.x, newdata = data.frame(date = as.numeric(d.all$date))),
-            predict(fit.y, newdata = data.frame(date = as.numeric(d.all$date)))
-            )
+        y.init <- approx(x = select(dnew, date, y), xout = d.all$date, rule = 2)$y
+        y.init <- stats::filter(y.init, rep(1,10)/10) %>% as.numeric()
+        y.init[1:4] <- y.init[5]
+        y.init[which(is.na(y.init))] <- y.init[which(is.na(y.init))[1]-1]
+        xs <- cbind(x.init, y.init)
 
     if (is.null(parameters)) {
       ## Estimate stochastic innovations

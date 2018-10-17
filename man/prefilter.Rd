@@ -19,11 +19,11 @@ prefilter(d, span = 0.01, min.dt = 0, min.dist = 100,
 \item{time.gap}{not currently implemented}
 }
 \description{
-\code{prefilter()} determines Argos data type (LS or KF); converts dates to POSIXt;
-identifies observations with duplicate dates; orders observations in time; converts
-longitudes from 0,360 to -180,180; projects lonlat coords to mercator x,y coords (in km);
-adds location error multiplication factors based on Argos location class (for type LS);
-and uses a loess smooth to identify potential outlier locations to be ignored when fitting
+\code{prefilter()} (1) determines Argos data type (LS or KF); (2) converts dates to POSIXt;
+identifies observations with duplicate dates; (3) orders observations in time; (4) converts
+longitudes from 0,360 to -180,180; (5) projects lonlat coords to mercator x,y coords (in km);
+(6) adds location error multiplication factors based on Argos location class (for type LS);
+and (7) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
 the \code{ctrw} model
 }
 \details{
