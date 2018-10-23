@@ -6,30 +6,34 @@
 ##'
 ##' @useDynLib ctrw
 ##' @importFrom TMB MakeADFun sdreport newtonOption
-##' @importFrom stats loess loess.control cov sd predict nlminb
+##' @importFrom stats approx cov sd predict nlminb optim
 ##' @importFrom dplyr mutate filter select full_join arrange lag %>%
+##' @importFrom tibble as_tibble
+##' @importFrom sp spTransform CRS SpatialPoints
+##'
 ##'
 ##' @export
 
 sfilter <-
   function(d,
-           ts = 1,
+           ptime = 1,
+           psi = 0,
            fit.to.subset = TRUE,
            parameters = NULL,
-           psi = 0,
            optim = c("nlminb","optim"),
            verbose = FALSE,
-           f = 0.1,
            inner.control = NULL
            ) {
     st <- proc.time()
     call <- match.call()
     optim <- match.arg(optim)
-    data.class <- class(d)[2]
- #   cat("\nfitting", data.class, "measurement error model\n")
-    if(data.class == "LS" & psi != 0) cat("psi will be ignored\n")
 
-    if(!psi %in% 0:1) stop("psi argument must be 0, or 1 - see ?fit_ssm")
+    if(ncol(d) == 11) data.class <- "KF"
+    else if(ncol(d) == 10) {
+      data.class <- "LS"
+    } else stop("\n unexpected number of columns in pre-filtered tibble")
+
+    if(!psi %in% 0:1) stop("psi argument must be 0 or 1 - see ?fit_ssm")
 
     ## drop any records flagged to be ignored, if fit.to.subset is TRUE
     ## add is.data flag (distinquish obs from reg states)
@@ -42,14 +46,25 @@ sfilter <-
         mutate(isd = TRUE)
     }
 
-    ## Interpolation times - assume on ts-multiple of the hour
-    tsp <- ts * 3600
-    tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
-    index <- floor(tms)
-    ts <- data.frame(date = seq(trunc(d$date[1], "hour"), by = tsp, length.out = max(index) + 2))
+    if (length(ptime) == 1) {
+      ## Interpolation times - assume on ptime-multiple of the hour
+      tsp <- ptime * 3600
+      tms <- (as.numeric(d$date) - as.numeric(d$date[1])) / tsp
+      index <- floor(tms)
+      ptime <-
+        data.frame(date = seq(
+          trunc(d$date[1], "hour"),
+          by = tsp,
+          length.out = max(index) + 2
+        ))
+    } else {
+      ptime <- ptime %>%
+        filter(id == unique(d$id)) %>%
+        select(date)
+    }
 
     ## merge data and interpolation times
-    d.all <- full_join(dnew, ts, by = "date") %>%
+    d.all <- full_join(dnew, ptime, by = "date") %>%
       arrange(date) %>%
       mutate(isd = ifelse(is.na(isd), FALSE, isd)) %>%
       mutate(id = ifelse(is.na(id), na.omit(unique(id))[1], id))
@@ -62,31 +77,17 @@ sfilter <-
       as.numeric() / 24
     dt[1] <- 0
 
-    ## Predict track from loess smooths (state initial values)
-    ## TP -data here should only be at obs times.
-    fit.x <-
-      loess(
-        x ~ as.numeric(date),
-        data = dnew,
-        span = f,
-        na.action = "na.exclude",
-        control = loess.control(surface = "direct")
-      )
-    fit.y <-
-      loess(
-        y ~ as.numeric(date),
-        data = dnew,
-        span = f,
-        na.action = "na.exclude",
-        control = loess.control(surface = "direct")
-      )
+    ## use approx & MA filter to obtain state initial values
+        x.init <- approx(x = select(dnew, date, x), xout = d.all$date, rule = 2)$y
+        x.init <- stats::filter(x.init, rep(1,10)/10) %>% as.numeric()
+        x.init[1:4] <- x.init[5]
+        x.init[which(is.na(x.init))] <- x.init[which(is.na(x.init))[1]-1]
 
-    ## Predict track, increments and stochastic innovations
-    ## for interp this predict call needs a newdata = all dates ( interp and obs combined times )
-    xs <-
-      cbind(predict(fit.x, newdata = data.frame(date = as.numeric(d.all$date))),
-            predict(fit.y, newdata = data.frame(date = as.numeric(d.all$date)))
-            )
+        y.init <- approx(x = select(dnew, date, y), xout = d.all$date, rule = 2)$y
+        y.init <- stats::filter(y.init, rep(1,10)/10) %>% as.numeric()
+        y.init[1:4] <- y.init[5]
+        y.init[which(is.na(y.init))] <- y.init[which(is.na(y.init))[1]-1]
+        xs <- cbind(x.init, y.init)
 
     if (is.null(parameters)) {
       ## Estimate stochastic innovations
@@ -110,17 +111,31 @@ sfilter <-
 
     ## TMB - data list
     fill <- rep(1, nrow(d.all))
-    if(data.class == "KF") {
+    if(data.class == "KF" & psi == 0) {
       data <-
         list(
           Y = cbind(d.all$x, d.all$y),
           dt = dt,
           isd = as.integer(d.all$isd),
           obs_mod = 1,
+          v = 0,
+          K = cbind(fill,fill),
           m = d.all$smin,
           M = d.all$smaj,
-          c = d.all$eor,
-          K = cbind(fill, fill)
+          c = d.all$eor
+        )
+    } else if(data.class == "KF" & psi == 1) {
+      data <-
+        list(
+          Y = cbind(d.all$x, d.all$y),
+          dt = dt,
+          isd = as.integer(d.all$isd),
+          obs_mod = 1,
+          v = 1,
+          K = cbind(fill,fill),
+          m = d.all$smin,
+          M = d.all$smaj,
+          c = d.all$eor
         )
     } else if(data.class == "LS") {
       data <-
@@ -129,6 +144,7 @@ sfilter <-
           dt = dt,
           isd = as.integer(d.all$isd),
           obs_mod = 0,
+          v = 0,
           m = fill,
           M = fill,
           c = fill,
@@ -136,7 +152,7 @@ sfilter <-
         )
     } else stop("Data class not recognised")
 
-    if (data.class == "KF" & psi == 0) {
+    if(data.class == "KF" & psi == 0) {
       map <-
         list(
           l_psi = factor(NA),
@@ -145,16 +161,22 @@ sfilter <-
         )
     }
     else if (data.class == "KF" & psi == 1) {
-      map <- list(l_tau = factor(c(NA,NA)), l_rho_o = factor(NA))
+      map <-
+        list(
+          l_tau = factor(c(NA, NA)),
+          l_rho_o = factor(NA)
+        )
     }
     else if (data.class == "LS") {
       map <- list(l_psi = factor(NA))
     }
 
+
 ## TMB - create objective function
     if(is.null(inner.control)) {
-      inner.control <- list(maxit = 1, smartsearch = FALSE)
+      inner.control <- list(smartsearch = TRUE, maxit = 1000)
     }
+
     obj <-
       MakeADFun(
         data,
@@ -173,13 +195,13 @@ sfilter <-
     obj$env$tracemgc <- verbose
 
 ## add par values to trace if verbose = TRUE
-#    myfn <- function(x){print("pars:"); print(x); obj$fn(x)}
+    myfn <- function(x){print("pars:"); print(x); obj$fn(x)}
 
     ## Minimize objective function
     opt <-
       suppressWarnings(switch(
         optim,
-        nlminb = try(nlminb(obj$par, obj$fn, obj$gr)), #myfn
+        nlminb = try(nlminb(obj$par, obj$fn, obj$gr)), #myfn #obj$fn
         optim = try(do.call(optim, args = list(par = obj$par, fn = obj$fn, gr = obj$gr, method = "L-BFGS-B"))) #myfn
       ))
 
@@ -188,10 +210,11 @@ sfilter <-
     ## Parameters, states and the fitted values
     rep <- sdreport(obj)
     fxd <- summary(rep, "report")
-    if (data.class == "KF" & psi == 1) {
-      fxd <- fxd[c(1:3, 7), ]
-    } else if (data.class == "KF" & psi == 0) {
-      fxd <- fxd[1:3,]
+
+    if (data.class == "KF" & psi == 0) {
+      fxd <- fxd[c(1:3), ]
+    } else if (data.class == "KF" & psi == 1) {
+      fxd <- fxd[c(1:3,7),]
     } else if (data.class == "LS") {
       fxd <- fxd[1:6,]
     }
@@ -206,19 +229,35 @@ sfilter <-
     fd <- as.data.frame(rdm) %>%
       mutate(id = unique(d.all$id),
              date = d.all$date,
-             isd = d.all$isd) %>%
-      select(id, date, x, y, x.se, y.se, isd) %>%
+             isd = d.all$isd)
+    ## reproject mercator x,y back to WGS84 longlat
+    xy <- SpatialPoints(fd[, c("x","y")], proj4string=CRS("+proj=merc +datum=WGS84 +units=km +no_defs"))
+    prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+    ll <- spTransform(xy, prj) %>% as_tibble()
+    fd[, c("lon","lat")] <- ll[,c("x","y")]
+
+    fd <- fd %>%
+      select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(isd) %>%
-      select(-isd)
+      select(-isd) %>%
+      as_tibble()
 
     ## Predicted values (estimated locations at regular time intervals, defined by `ts`)
     pd <- as.data.frame(rdm) %>%
       mutate(id = unique(d.all$id),
              date = d.all$date,
-             isd = d.all$isd) %>%
-      select(id, date, x, y, x.se, y.se, isd) %>%
+             isd = d.all$isd)
+    ## reproject mercator x,y back to WGS84 longlat
+    xy <- SpatialPoints(pd[, c("x","y")], proj4string=CRS("+proj=merc +datum=WGS84 +units=km +no_defs"))
+    prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+    ll <- spTransform(xy, prj) %>% as_tibble()
+    pd[, c("lon","lat")] <- ll[,c("x","y")]
+
+    pd <- pd %>%
+      select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
       filter(!isd) %>%
-      select(-isd)
+      select(-isd) %>%
+      as_tibble()
 
     if (optim == "nlminb") {
       aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
@@ -233,7 +272,6 @@ sfilter <-
       data = d,
       inits = parameters,
       mmod = data.class,
-      ts = tsp / 3600,
       opt = opt,
       tmb = obj,
       rep = rep,
@@ -246,8 +284,8 @@ sfilter <-
       data = d,
       inits = parameters,
       mmod = data.class,
-      ts = tsp / 3600,
-      tmb = obj
+      tmb = obj,
+      errmsg = opt
     )
   }
     class(out) <- append("ctrwSSM", class(out))

@@ -1,10 +1,10 @@
 ##' @title Prepare Argos data for fitting a ctrw model
 ##'
-##' @description \code{prefilter()} determines Argos data type (LS or KF); converts dates to POSIXt;
-##' identifies observations with duplicate dates; orders observations in time; converts
-##' longitudes from 0,360 to -180,180; projects lonlat coords to mercator x,y coords (in km);
-##' adds location error multiplication factors based on Argos location class (for type LS);
-##' and uses a loess smooth to identify potential outlier locations to be ignored when fitting
+##' @description \code{prefilter()} (1) determines Argos data type (LS or KF); (2) converts dates to POSIXt;
+##' identifies observations with duplicate dates; (3) orders observations in time; (4) converts
+##' longitudes from 0,360 to -180,180; (5) projects lonlat coords to mercator x,y coords (in km);
+##' (6) adds location error multiplication factors based on Argos location class (for type LS);
+##' and (7) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
 ##' the \code{ctrw} model
 ##'
 ##' @details Internal function
@@ -17,6 +17,7 @@
 ##' @importFrom lubridate ymd_hms
 ##' @importFrom stats loess
 ##' @importFrom dplyr mutate distinct arrange filter select %>% left_join
+##' @importFrom rgdal project
 ##'
 ##' @export
 
@@ -37,7 +38,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
 
   if(!is.null(d$id)) d <- d %>% mutate(id = as.character(id))
 
-  if(ncol(d) == 5) data.type <- "LS"
+  if(ncol(d) == 5 | (ncol(d) == 8 & sum(is.na(d$smaj))/nrow(d) == 1)) data.type <- "LS"
   else data.type <- "KF"
 
 
@@ -46,16 +47,17 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   ##  order records by time,
   ##  set lc to ordered factor
   ##  convert lon from 0,360 to -180,180
-  ##  reproject lon,lat to x,y in km
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
     mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
     mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE)) %>%
-    mutate(lon = ifelse(lon > 180, 180 - lon, lon)) %>%
-    mutate(x = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,1]) %>%
-    mutate(y = geosphere::mercator(cbind(.$lon,.$lat), r = 6378.137)[,2])
+    mutate(lon = ifelse(lon > 180, 180 - lon, lon))
+
+  ## reproject from longlat to mercator x,y (km)
+  prj <- "+proj=merc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs"
+  d[, c("x", "y")] <- as_tibble(project(as.matrix(d[, c("lon", "lat")]), proj = prj))
 
   if(data.type == "KF") {
     ##  flag any records with smaj/smin = 0
@@ -81,6 +83,8 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
            )
            d <- d %>%
              left_join(., amf, by = "lc")
+           if(sum(is.na(d$lc)) > 0) stop("\n NA's found in location class values,\n
+                                         perhaps your input lc's != c(3,2,1,0,`A`,`B`,`Z`)?")
          },
          KF = {
            ##  convert error ellipse axes from m to km
@@ -133,12 +137,11 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   switch(data.type,
          LS = {
            d <- d %>% select(id, date, lc, lon, lat, x, y, amf_x, amf_y, keep)
-           class(d) <- append(c("ctrwData", "LS"), class(d))
          },
          KF = {
            d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
-           class(d) <- append(c("ctrwData", "KF"), class(d))
          })
+  class(d) <- append("ctrwData", class(d))
 #  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
 
   return(d)

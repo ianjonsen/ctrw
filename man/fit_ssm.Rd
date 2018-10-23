@@ -4,7 +4,8 @@
 \alias{fit_ssm}
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
-fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
+fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
+  ptime, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
@@ -13,13 +14,12 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
 
 \item{min.dt}{minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM}
 
-\item{min.dist}{minimum distance from track to define potential outlier locations in prefilter}
+\item{min.dist}{minimum distance from track to define potential outlier locations in prefilter
+##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, must be specified as a data.frame with id and POSIXt dates.}
 
 \item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
 
 \item{...}{arguments passed to sfilter, described below:}
-
-\item{ts}{the time step, in hours, to predict to}
 
 \item{fit.to.subset}{fit the SSM to the data subset determined by prefilter (default is TRUE)}
 
@@ -28,8 +28,6 @@ fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE, ...)
 \item{optim}{numerical optimizer (nlminb or optim)}
 
 \item{verbose}{report progress during minimization}
-
-\item{f}{the span parameter for the loess fits used to estimate initial location states}
 }
 \value{
 a list with components
@@ -40,7 +38,6 @@ a list with components
 \item{\code{data}}{the input data.frame}
 \item{\code{subset}}{the inpu subset vector}
 \item{\code{mem}}{the measurement error model used}
-\item{\code{ts}}{the prediction time interval}
 \item{\code{opt}}{the object returned by the optimizer}
 \item{\code{tmb}}{the TMB object}
 \item{\code{rep}}{TMB sdreport}
@@ -56,12 +53,12 @@ locations on a regular time step
 require(dplyr)
 data(ellie)
 ## fit KF measurement error model
-fkf <- fit_ssm(ellie, min.dist = 150, ts = 12)
+fkf <- fit_ssm(ellie, min.dist = 150, ptime = 12, psi = 0)
 
 ## fit KFp measurement error model
-fkfp <- fit_ssm(ellie, min.dist = 150, ts = 12, psi = 1)
+fkfp <- fit_ssm(ellie, min.dist = 150, ptime = 12, psi = 1)
 
 ## fit LS measurement error model
-fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ts = 12)
+fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ptime = 12)
 }
 }

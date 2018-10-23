@@ -1,4 +1,5 @@
 #include <TMB.hpp>
+//#include "densities/mvt.hpp"
 
 using namespace density;
 
@@ -6,30 +7,30 @@ template<class Type>
   Type objective_function<Type>::operator() ()
   {
     // DATA
-    DATA_MATRIX(Y);	            //  (x, y) observations
-    DATA_VECTOR(dt);            //  time diff in some appropriate unit. this should contain dt for both interp and obs positions.
-    DATA_IVECTOR(isd);          //  indexes observations vs. interpolation points
+    DATA_MATRIX(Y);	              //  (x, y) observations
+    DATA_VECTOR(dt);              //  time diff in some appropriate unit. this should contain dt for both interp and obs positions.
+    DATA_IVECTOR(isd);            //  indexes observations vs. interpolation points
 
-    DATA_INTEGER(obs_mod);       //  indicates which obs error model to be used
+    DATA_INTEGER(obs_mod);        //  indicates which obs error model to be used
+    DATA_INTEGER(v);              //  indicates which KF error model variant to be used
 
     // for KF observation model
-    DATA_VECTOR(m);             //  m is the semi-minor axis length
-    DATA_VECTOR(M);             //  M is the semi-major axis length
-    DATA_VECTOR(c);             //  c is the orientation of the error ellipse
+    DATA_VECTOR(m);               //  m is the semi-minor axis length
+    DATA_VECTOR(M);               //  M is the semi-major axis length
+    DATA_VECTOR(c);               //  c is the orientation of the error ellipse
 
     // for LS observation model
-    DATA_MATRIX(K);                 // error weighting factors for LS obs model
+    DATA_MATRIX(K);               //  error weighting factors for LS obs model
 
     // PARAMETERS
-    PARAMETER_VECTOR(l_sigma);      //  Innovation variance (link scale)
-    PARAMETER(l_rho_p);             //  Innovation correlation (link scale)
-    PARAMETER_MATRIX(X);            //  Predicted locations TP - length(X) should be same as length(dt) - i.e. both interp & obs pos.
-    PARAMETER(l_psi);        // error SD scaling parameter to account for possible uncertainty in Argos error ellipse variables
+    PARAMETER_VECTOR(l_sigma);    //  Innovation variance (link scale)
+    PARAMETER(l_rho_p);           //  Innovation correlation (link scale)
+    PARAMETER_MATRIX(X);          //  Predicted locations TP - length(X) should be same as length(dt) - i.e. both interp & obs pos.
+    PARAMETER(l_psi);             //  error SD scaling parameter to account for possible uncertainty in Argos error ellipse variables
 
     // for LS observation model
-    PARAMETER_VECTOR(l_tau);        // error dispersion for LS obs model (log scale)
-    PARAMETER(l_rho_o);             // error correlation
-
+    PARAMETER_VECTOR(l_tau);      //  error dispersion for LS obs model (log scale)
+    PARAMETER(l_rho_o);           //  error correlation
 
     // Tronsform parameters
     vector<Type> sigma = exp(l_sigma);
@@ -51,7 +52,7 @@ template<class Type>
 
     parallel_accumulator<Type> jnll(this);       // (Complete data) negative log likelihood
     MVNORM_t<Type> nll_proc(cov);	              // Multivariate Normal for process
-    MVNORM_t<Type> nll_obs;                     // Multivariate Normal for observations
+    MVNORM_t<Type> nll_obs(cov_obs);
 
     // process model
     for(int i = 1; i < X.rows(); ++i) {
@@ -67,22 +68,37 @@ template<class Type>
           // Argos Least Squares observations
           Type s = tau(0) * K(i,0);
           Type q = tau(1) * K(i,1);
+          cov_obs.setZero();
           cov_obs(0,0) = pow(s, 2);
           cov_obs(1,1) = pow(q, 2);
-          cov_obs(0,1) = s * q * rho_o;
+          cov_obs(0,1) = rho_o * s * q;
           cov_obs(1,0) = cov_obs(0,1);
-        } else {
+        }
+         else if(obs_mod == 1 && v == 0) {
           // Argos Kalman Filter observations
-          Type s2c = sin(c(i)) * sin(c(i));  // sin2(c)
-          Type c2c = cos(c(i)) * cos(c(i));  // cos2(c)
+          Type s2c = pow(sin(c(i)), 2);
+          Type c2c = pow(cos(c(i)), 2);
           Type M2  = (M(i) / sqrt(2)) * (M(i) / sqrt(2));
-          Type m2 = (m(i) * psi / sqrt(2)) * (m(i) * psi / sqrt(2));
-
+          Type m2 = (m(i) / sqrt(2)) * (m(i) / sqrt(2));
+          cov_obs.setZero();
           cov_obs(0,0) = (M2 * s2c + m2 * c2c);
           cov_obs(1,1) = (M2 * c2c + m2 * s2c);
           cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i),2))) * cos(c(i)) * sin(c(i));
           cov_obs(1,0) = cov_obs(0,1);
         }
+         else if(obs_mod == 1 && v == 1) {
+          // Argos Kalman Filter observations
+          Type s2c = pow(sin(c(i)), 2);
+          Type c2c = pow(cos(c(i)), 2);
+          Type M2  = (M(i) / sqrt(2)) * (M(i) / sqrt(2));
+          Type m2 = (m(i) * psi / sqrt(2)) * (m(i) * psi / sqrt(2));
+          cov_obs.setZero();
+          cov_obs(0,0) = (M2 * s2c + m2 * c2c);
+          cov_obs(1,1) = (M2 * c2c + m2 * s2c);
+          cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i) * psi,2))) * cos(c(i)) * sin(c(i));
+          cov_obs(1,0) = cov_obs(0,1);
+        }
+
         nll_obs.setSigma(cov_obs);   // set up i-th obs cov matrix
 
         jnll += nll_obs(Y.row(i) - X.row(i));   // innovations
