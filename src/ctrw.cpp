@@ -95,7 +95,7 @@ template<class Type>
           cov_obs.setZero();
           cov_obs(0,0) = (M2 * s2c + m2 * c2c);
           cov_obs(1,1) = (M2 * c2c + m2 * s2c);
-          cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i),2))) * cos(c(i)) * sin(c(i));
+          cov_obs(0,1) = (0.5 * (pow(M(i),2) - pow(m(i) * psi,2))) * cos(c(i)) * sin(c(i));
           cov_obs(1,0) = cov_obs(0,1);
         }
 
