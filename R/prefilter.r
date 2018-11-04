@@ -61,7 +61,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
     centre <- 0
     d <- d %>%
       mutate(lon = wrap_lon(lon, 0))
-  } else if(min(d$lon, na.rm = TRUE) >= 0 & diff(range(d$lon, na.rm = TRUE)) > 350) {
+  } else {
     centre <- 180
     d <- d %>%
       mutate(lon = wrap_lon(lon, -180))
