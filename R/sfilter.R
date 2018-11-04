@@ -9,7 +9,7 @@
 ##' @importFrom stats approx cov sd predict nlminb optim
 ##' @importFrom dplyr mutate filter select full_join arrange lag %>%
 ##' @importFrom tibble as_tibble
-##' @importFrom sp spTransform CRS SpatialPoints
+##' @importFrom rgdal project
 ##'
 ##'
 ##' @export
@@ -231,10 +231,12 @@ sfilter <-
              date = d.all$date,
              isd = d.all$isd)
     ## reproject mercator x,y back to WGS84 longlat
-    xy <- SpatialPoints(fd[, c("x","y")], proj4string=CRS("+proj=merc +datum=WGS84 +units=km +no_defs"))
-    prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
-    ll <- spTransform(xy, prj) %>% as_tibble()
-    fd[, c("lon","lat")] <- ll[,c("x","y")]
+    prj <- "+proj=merc +datum=WGS84 +units=km +no_defs"
+    fd[, c("lon", "lat")] <- as_tibble(project(as.matrix(fd[, c("x", "y")]), proj = prj, inv = TRUE))
+    if(mean(range(d$lon)) >= 170 & mean(range(d$lon)) <= 190) {
+      fd <- fd %>%
+        mutate(lon = wrap_lon(lon, 180) - 180)
+    }
 
     fd <- fd %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
@@ -248,10 +250,12 @@ sfilter <-
              date = d.all$date,
              isd = d.all$isd)
     ## reproject mercator x,y back to WGS84 longlat
-    xy <- SpatialPoints(pd[, c("x","y")], proj4string=CRS("+proj=merc +datum=WGS84 +units=km +no_defs"))
-    prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
-    ll <- spTransform(xy, prj) %>% as_tibble()
-    pd[, c("lon","lat")] <- ll[,c("x","y")]
+    pd[, c("lon", "lat")] <- as_tibble(project(as.matrix(pd[, c("x", "y")]), proj = prj, inv = TRUE))
+    if(mean(range(d$lon)) >= 170 & mean(range(d$lon)) <= 190) {
+      pd <- pd %>%
+        mutate(lon = wrap_lon(lon, 180) - 180)
+    }
+
 
     pd <- pd %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%

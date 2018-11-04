@@ -47,6 +47,8 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   ##  order records by time,
   ##  set lc to ordered factor
   ##  convert lon from 0,360 to -180,180
+  ##    but if this shift leads to jumps across dateline then
+  ##    shift back to orig interval <- THIS REMAINS LEFT TO DO
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
     mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
@@ -54,6 +56,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE)) %>%
     mutate(lon = ifelse(lon > 180, 180 - lon, lon))
+
 
   ## reproject from longlat to mercator x,y (km)
   prj <- "+proj=merc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs"
