@@ -1,9 +1,9 @@
 ##' @title Prepare Argos data for fitting a ctrw model
 ##'
 ##' @description \code{prefilter()} (1) determines Argos data type (LS or KF); (2) converts dates to POSIXt;
-##' identifies observations with duplicate dates; (3) orders observations in time; (4) converts
-##' longitudes from 0,360 to -180,180; (5) projects lonlat coords to mercator x,y coords (in km);
-##' (6) adds location error multiplication factors based on Argos location class (for type LS);
+##' identifies observations with duplicate dates; (3) orders observations in time; (4) shifts
+##' longitudes that straddle -180,180 to 0,360 and vice-versa; (5) projects lonlat coords to mercator x,y coords
+##' (in km); (6) adds location error multiplication factors based on Argos location class (for type LS);
 ##' and (7) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
 ##' the \code{ctrw} model
 ##'
@@ -46,20 +46,33 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
   ##  flag any duplicate date records,
   ##  order records by time,
   ##  set lc to ordered factor
-  ##  convert lon from 0,360 to -180,180
-  ##    but if this shift leads to jumps across dateline then
-  ##    shift back to orig interval <- THIS REMAINS LEFT TO DO
+  ##  if lon spans -180,180 then shift to
+  ##    0,360; else if lon spans 360,0 then shift to
+  ##    -180,180
+
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
     mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
     mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
-    mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE)) %>%
-    mutate(lon = ifelse(lon > 180, 180 - lon, lon))
+    mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE))
 
+  if(min(d$lon, na.rm = TRUE) < 0 & diff(range(d$lon, na.rm = TRUE)) > 350) {
+    centre <- 0
+    d <- d %>%
+      mutate(lon = wrap_lon(lon, 0))
+  } else if(min(d$lon, na.rm = TRUE) >= 0 & diff(range(d$lon, na.rm = TRUE)) > 350) {
+    centre <- 180
+    d <- d %>%
+      mutate(lon = wrap_lon(lon, -180))
+  }
 
   ## reproject from longlat to mercator x,y (km)
-  prj <- "+proj=merc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs"
+  if(centre == 0){
+    prj <- "+proj=merc +lat_0=0 +lon_0=180 +datum=WGS84 +units=km +no_defs"
+  } else if(centre == 180) {
+    prj <- "+proj=merc +lat_0=0 +lon_0=0 +datum=WGS84 +units=km +no_defs"
+  }
   d[, c("x", "y")] <- as_tibble(project(as.matrix(d[, c("lon", "lat")]), proj = prj))
 
   if(data.type == "KF") {
