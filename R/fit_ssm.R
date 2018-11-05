@@ -48,7 +48,7 @@
 ##' @export
 fit_ssm <- function(d,
                     span = 0.1,
-                    min.dt = 0,
+                    min.dt = 60,
                     min.dist = 100,
                     pf = FALSE,
                     ptime,

@@ -17,7 +17,7 @@
 ##' @param time.gap not currently implemented
 ##' @importFrom lubridate ymd_hms
 ##' @importFrom stats loess
-##' @importFrom dplyr mutate distinct arrange filter select %>% left_join
+##' @importFrom dplyr mutate distinct arrange filter select %>% left_join lag
 ##' @importFrom rgdal project
 ##'
 ##' @export
@@ -53,7 +53,7 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
 
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
-    mutate(keep = difftime(date, lag(date), units = "secs") >= min.dt) %>%
+    mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
     mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE))

@@ -4,7 +4,7 @@
 \alias{prefilter}
 \title{Prepare Argos data for fitting a ctrw model}
 \usage{
-prefilter(d, span = 0.01, min.dt = 0, min.dist = 100,
+prefilter(d, span = 0.01, min.dt = 60, min.dist = 100,
   time.gap = NULL)
 }
 \arguments{
@@ -20,10 +20,11 @@ prefilter(d, span = 0.01, min.dt = 0, min.dist = 100,
 }
 \description{
 \code{prefilter()} (1) determines Argos data type (LS or KF); (2) converts dates to POSIXt;
-identifies observations with duplicate dates; (3) orders observations in time; (4) shifts
-longitudes that straddle -180,180 to 0,360 and vice-versa; (5) projects lonlat coords to mercator x,y coords
-(in km); (6) adds location error multiplication factors based on Argos location class (for type LS);
-and (7) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
+identifies observations with duplicate dates; (3) orders observations in time;
+(4) removes duplicate observations; (5) removes observations occurring within 60 s of one another (keeps first);
+(6) shifts longitudes that straddle -180,180 to 0,360 and vice-versa; (7) projects lonlat coords to mercator x,y
+coords (in km); (8) adds location error multiplication factors based on Argos location class (for type LS);
+and (9) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
 the \code{ctrw} model
 }
 \details{
