@@ -1,10 +1,11 @@
 ##' @title Prepare Argos data for fitting a ctrw model
 ##'
 ##' @description \code{prefilter()} (1) determines Argos data type (LS or KF); (2) converts dates to POSIXt;
-##' identifies observations with duplicate dates; (3) orders observations in time; (4) shifts
-##' longitudes that straddle -180,180 to 0,360 and vice-versa; (5) projects lonlat coords to mercator x,y coords
-##' (in km); (6) adds location error multiplication factors based on Argos location class (for type LS);
-##' and (7) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
+##' identifies observations with duplicate dates; (3) orders observations in time;
+##' (4) removes duplicate observations; (5) removes observations occurring within 60 s of one another (keeps first);
+##' (6) shifts longitudes that straddle -180,180 to 0,360 and vice-versa; (7) projects lonlat coords to mercator x,y
+##' coords (in km); (8) adds location error multiplication factors based on Argos location class (for type LS);
+##' and (9) uses a loess smooth to identify potential outlier locations (by distance only) to be ignored when fitting
 ##' the \code{ctrw} model
 ##'
 ##' @details Internal function
@@ -21,7 +22,7 @@
 ##'
 ##' @export
 
-prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NULL) {
+prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NULL) {
 
   # check input data
   if(!ncol(d) %in% c(5,8)) stop("Data can only have 5 (for LS data) or 8 (for KF data) columns")
@@ -52,7 +53,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
 
   d <- d %>%
     mutate(date = ymd_hms(date, tz = "GMT")) %>%
-    mutate(keep = difftime(date, lag(date), units = "secs") > min.dt) %>%
+    mutate(keep = difftime(date, lag(date), units = "secs") >= min.dt) %>%
     mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE))
@@ -157,7 +158,7 @@ prefilter <- function(d, span = 0.01, min.dt = 0, min.dist = 100, time.gap = NUL
          KF = {
            d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
          })
-  class(d) <- append("ctrwData", class(d))
+  class(d) <- append(c("ctrwData", paste0("centre", centre)), class(d))
 #  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
 
   return(d)

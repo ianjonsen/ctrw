@@ -230,12 +230,19 @@ sfilter <-
       mutate(id = unique(d.all$id),
              date = d.all$date,
              isd = d.all$isd)
+
     ## reproject mercator x,y back to WGS84 longlat
-    prj <- "+proj=merc +datum=WGS84 +units=km +no_defs"
+    if(class(d)[2] == "centre0") {
+      prj <- "+proj=merc +lon_0=180 +datum=WGS84 +units=km +no_defs"
+    } else {
+      prj <- "+proj=merc +lon_0=0 +datum=WGS84 +units=km +no_defs"
+    }
+
     fd[, c("lon", "lat")] <- as_tibble(project(as.matrix(fd[, c("x", "y")]), proj = prj, inv = TRUE))
-    if(mean(range(d$lon)) >= 170 & mean(range(d$lon)) <= 190) {
+
+    if(class(d)[2] == "centre0") {
       fd <- fd %>%
-        mutate(lon = wrap_lon(lon, 180) - 180)
+        mutate(lon = wrap_lon(lon, 0))
     }
 
     fd <- fd %>%
@@ -251,11 +258,11 @@ sfilter <-
              isd = d.all$isd)
     ## reproject mercator x,y back to WGS84 longlat
     pd[, c("lon", "lat")] <- as_tibble(project(as.matrix(pd[, c("x", "y")]), proj = prj, inv = TRUE))
-    if(mean(range(d$lon)) >= 170 & mean(range(d$lon)) <= 190) {
-      pd <- pd %>%
-        mutate(lon = wrap_lon(lon, 180) - 180)
-    }
 
+    if(class(d)[2] == "centre0") {
+      pd <- pd %>%
+        mutate(lon = wrap_lon(lon, 0))
+    }
 
     pd <- pd %>%
       select(id, date, lon, lat, x, y, x.se, y.se, isd) %>%
