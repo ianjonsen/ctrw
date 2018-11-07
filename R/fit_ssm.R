@@ -74,7 +74,7 @@ fit_ssm <- function(d,
       rowwise() %>%
       do(ssm = try(sfilter(.$pf, ptime = ptime, ...), silent = TRUE))
 
-    fail <- which(sapply(fit$ssm, length) == 6)
+    fail <- which(sapply(fit$ssm, length) == 6 || sapply(fit$ssm, length) == 1)
     if (length(fail) > 0) {
       cat(sprintf("\n%d optimisation failures\n", length(fail)))
     }

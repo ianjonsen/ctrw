@@ -59,19 +59,19 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE))
 
   if(min(d$lon, na.rm = TRUE) < 0 & diff(range(d$lon, na.rm = TRUE)) > 350) {
-    centre <- 0
     d <- d %>%
-      mutate(lon = wrap_lon(lon, 0))
+      mutate(lon = wrap_lon(lon, 0)) %>%
+      mutate(cntr = 0)
   } else {
-    centre <- 180
     d <- d %>%
-      mutate(lon = wrap_lon(lon, -180))
+      mutate(lon = wrap_lon(lon, -180)) %>%
+      mutate(cntr = 180)
   }
 
   ## reproject from longlat to mercator x,y (km)
-  if(centre == 0){
+  if(d$cntr[1] == 0){
     prj <- "+proj=merc +lat_0=0 +lon_0=180 +datum=WGS84 +units=km +no_defs"
-  } else if(centre == 180) {
+  } else if(d$cntr[1] == 180) {
     prj <- "+proj=merc +lat_0=0 +lon_0=0 +datum=WGS84 +units=km +no_defs"
   }
   d[, c("x", "y")] <- as_tibble(project(as.matrix(d[, c("lon", "lat")]), proj = prj))
@@ -153,12 +153,12 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
 
   switch(data.type,
          LS = {
-           d <- d %>% select(id, date, lc, lon, lat, x, y, amf_x, amf_y, keep)
+           d <- d %>% select(id, date, lc, lon, lat, x, y, amf_x, amf_y, keep, cntr)
          },
          KF = {
-           d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep)
+           d <- d %>% select(id, date, lc, lon, lat, smaj, smin, eor, x, y, keep, cntr)
          })
-  class(d) <- append(c("ctrwData", paste0("centre", centre)), class(d))
+  class(d) <- append("ctrwData", class(d))
 #  cat("Data is of class: ", class(d)[1], "  ", class(d)[2], sep = "")
 
   return(d)

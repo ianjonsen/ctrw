@@ -28,8 +28,8 @@ sfilter <-
     call <- match.call()
     optim <- match.arg(optim)
 
-    if(ncol(d) == 11) data.class <- "KF"
-    else if(ncol(d) == 10) {
+    if(ncol(d) == 12) data.class <- "KF"
+    else if(ncol(d) == 11) {
       data.class <- "LS"
     } else stop("\n unexpected number of columns in pre-filtered tibble")
 
@@ -206,9 +206,10 @@ sfilter <-
       ))
 
   ## if error then exit with limited output to aid debugging
-  if (class(opt) != "try-error") {
+  rep <- try(sdreport(obj), silent = TRUE)
+  if (class(opt) != "try-error" & class(rep) != "try-error") {
     ## Parameters, states and the fitted values
-    rep <- sdreport(obj)
+
     fxd <- summary(rep, "report")
 
     if (data.class == "KF" & psi == 0) {
@@ -232,7 +233,7 @@ sfilter <-
              isd = d.all$isd)
 
     ## reproject mercator x,y back to WGS84 longlat
-    if(class(d)[2] == "centre0") {
+    if(d$cntr[1] == 0) {
       prj <- "+proj=merc +lon_0=180 +datum=WGS84 +units=km +no_defs"
     } else {
       prj <- "+proj=merc +lon_0=0 +datum=WGS84 +units=km +no_defs"
@@ -240,7 +241,7 @@ sfilter <-
 
     fd[, c("lon", "lat")] <- as_tibble(project(as.matrix(fd[, c("x", "y")]), proj = prj, inv = TRUE))
 
-    if(class(d)[2] == "centre0") {
+    if(d$cntr[1] == 0) {
       fd <- fd %>%
         mutate(lon = wrap_lon(lon, 0))
     }
@@ -259,7 +260,7 @@ sfilter <-
     ## reproject mercator x,y back to WGS84 longlat
     pd[, c("lon", "lat")] <- as_tibble(project(as.matrix(pd[, c("x", "y")]), proj = prj, inv = TRUE))
 
-    if(class(d)[2] == "centre0") {
+    if(d$cntr[1] == 0) {
       pd <- pd %>%
         mutate(lon = wrap_lon(lon, 0))
     }
@@ -280,7 +281,8 @@ sfilter <-
       predicted = pd,
       fitted = fd,
       par = fxd,
-      data = d,
+      data = select(d, -cntr),
+      lon.wrapped = ifelse(d$cntr[1]==0, TRUE, FALSE),
       inits = parameters,
       mmod = data.class,
       opt = opt,
@@ -290,6 +292,7 @@ sfilter <-
       time = proc.time() - st
     )
   } else {
+    ## if optimiser fails
     out <- list(
       call = call,
       data = d,
