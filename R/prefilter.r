@@ -114,25 +114,26 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
 
   ## use loess smooth to identify outliers by distance (faster than speed filters)
   lo.x <-
-    loess(
+    try(loess(
       x ~ as.numeric(date),
       data = d,
       span = span,
       na.action = "na.exclude",
       control = loess.control(surface = "direct")
-    )
-  res.x <- lo.x$residuals
+    ), silent = TRUE)
+  if(class(lo.x) != "try-error") res.x <- lo.x$residuals
 
   lo.y <-
-    loess(
+    try(loess(
       y ~ as.numeric(date),
       data = d,
       span = span,
       na.action = "na.exclude",
       control = loess.control(surface = "direct")
-    )
-  res.y <- lo.y$residuals
+    ), silent = TRUE)
+  if(class(lo.y) != "try-error") res.y <- lo.y$residuals
 
+  if(class(lo.x) != "try-error" & class(lo.y) != "try-error") {
  ## flag extreme outlier locations, if residuals > min.dist, to be ignored by SSM filter
   d <- d %>%
     mutate(keep = ifelse((
@@ -147,6 +148,7 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
     FALSE,
     keep
     ))
+  }
 
   f1 <- sum(!d$keep) - f
 #  cat(sprintf("%d potential outlier locations with residuals > %d km will be ignored \n", f1, min.dist))
