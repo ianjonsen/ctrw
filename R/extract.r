@@ -5,7 +5,7 @@ extract <- function(x, what = "fitted", ...) {
   if (length(list(...)) > 0) {
     warning("additional arguments ignored")
   }
-  what <- match.arg(what)
+  what <- match.arg(what, choices = c("fitted","predicted","data"))
 
   if(!what %in% c("fitted","predicted","data"))
     stop("Only `fitted`, `predicted` or `data` objects can be extracted")
