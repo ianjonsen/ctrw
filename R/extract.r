@@ -10,7 +10,7 @@ extract <- function(x, what = "fitted", ...) {
   if(!what %in% c("fitted","predicted","data"))
     stop("Only `fitted`, `predicted` or `data` objects can be extracted")
   n <- which(sapply(x$ssm, length) < 13)
-  if(n > 0) {
+  if(length(n) > 0) {
     x <- x %>% slice(-n)
     sprintf("%d convergence failures removed from output\n", n)
     sprintf("ids: %s", x[n, "id"])
