@@ -1,7 +1,7 @@
 Package: ctrw
 Type: Package
 Title: a Continuous-Time Random Walk state-space model to filter Argos Least Squares or Kalman Filter location data
-Version: 0.1.0.9704
+Version: 0.1.0.9705
 Authors@R: c(
     person("Ian", "Jonsen", email = "ian.jonsen@mq.edu.au", 
     role = c("aut", "cre")),
