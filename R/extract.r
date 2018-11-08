@@ -14,6 +14,7 @@ extract <- function(x, what = "fitted", ...) {
     x <- x %>% slice(-n)
     sprintf("%d convergence failures removed from output\n", n)
     sprintf("ids: %s", x[n, "id"])
+  }
 
   switch(what,
          fitted = {
