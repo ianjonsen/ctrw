@@ -9,11 +9,11 @@ extract <- function(x, what = "fitted", ...) {
 
   if(!what %in% c("fitted","predicted","data"))
     stop("Only `fitted`, `predicted` or `data` objects can be extracted")
-  n <- which(sapply(x$ssm, length) < 13)
-  if(length(n) > 0) {
-    x <- x %>% slice(-n)
-    sprintf("%d convergence failures removed from output\n", n)
-    sprintf("ids: %s", x[n, "id"])
+  nf <- which(sapply(x$ssm, length) < 13)
+  if(length(nf) > 0) {
+    sprintf("%d convergence failures removed from output", length(nf))
+    sprintf("ids: %s", x[nf, "id"])
+    x <- x[-nf, ]
   }
 
   switch(what,
