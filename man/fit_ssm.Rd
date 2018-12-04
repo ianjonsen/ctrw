@@ -4,7 +4,7 @@
 \alias{fit_ssm}
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
-fit_ssm(d, span = 0.1, min.dt = 0, min.dist = 100, pf = FALSE,
+fit_ssm(d, span = 0.1, min.dt = 60, min.dist = 100, pf = FALSE,
   ptime, ...)
 }
 \arguments{

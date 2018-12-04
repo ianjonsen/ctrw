@@ -244,6 +244,9 @@ sfilter <-
     if(d$cntr[1] == 0) {
       fd <- fd %>%
         mutate(lon = wrap_lon(lon, 0))
+    } else if(d$cntr[1] == 90) {
+      fd <- fd %>%
+        mutate(lon = lon + 180)
     }
 
     fd <- fd %>%
@@ -263,6 +266,9 @@ sfilter <-
     if(d$cntr[1] == 0) {
       pd <- pd %>%
         mutate(lon = wrap_lon(lon, 0))
+    } else if(d$cntr[1] == 90) {
+      pd <- pd %>%
+        mutate(lon = lon + 180)
     }
 
     pd <- pd %>%

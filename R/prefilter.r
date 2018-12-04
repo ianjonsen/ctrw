@@ -62,14 +62,17 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
     d <- d %>%
       mutate(lon = wrap_lon(lon, 0)) %>%
       mutate(cntr = 0)
-  } else {
+  } else if (min(d$lon) < 0 & max(d$lon) > 0){
     d <- d %>%
       mutate(lon = wrap_lon(lon, -180)) %>%
       mutate(cntr = 180)
+  } else {
+    d <- d %>%
+      mutate(cntr = 90)
   }
 
   ## reproject from longlat to mercator x,y (km)
-  if(d$cntr[1] == 0){
+  if(d$cntr[1] == 0 | d$cntr[1] == 90){
     prj <- "+proj=merc +lat_0=0 +lon_0=180 +datum=WGS84 +units=km +no_defs"
   } else if(d$cntr[1] == 180) {
     prj <- "+proj=merc +lat_0=0 +lon_0=0 +datum=WGS84 +units=km +no_defs"
