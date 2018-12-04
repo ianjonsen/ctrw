@@ -4,20 +4,18 @@
 \alias{fit_ssm}
 \title{Fit a Continuous-time Random Walk state-space filter to Argos data}
 \usage{
-fit_ssm(d, span = 0.1, min.dt = 60, min.dist = 100, pf = FALSE,
-  ptime, ...)
+fit_ssm(d, vmax = 10, min.dt = 60, pf = FALSE, ptime, ...)
 }
 \arguments{
 \item{d}{a data frame of observations including Argos KF error ellipse info}
 
-\item{span}{degree of loess smoothing (range: 0 - 1) to identify potential outliers in prefilter}
+\item{vmax}{max travel rate (m/s) passed to argosfilter::sdafilter to define outlier locations}
 
 \item{min.dt}{minimum allowable time difference between observations; dt <= min.dt will be ignored by the SSM}
 
-\item{min.dist}{minimum distance from track to define potential outlier locations in prefilter
-##' @param ptime the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, must be specified as a data.frame with id and POSIXt dates.}
-
 \item{pf}{just pre-filter the data, do not fit the ctrw (default is FALSE)}
+
+\item{ptime}{the regular time interval, in hours, to predict to. Alternatively, a vector of prediction times, possibly not regular, must be specified as a data.frame with id and POSIXt dates.}
 
 \item{...}{arguments passed to sfilter, described below:}
 
@@ -53,12 +51,12 @@ locations on a regular time step
 require(dplyr)
 data(ellie)
 ## fit KF measurement error model
-fkf <- fit_ssm(ellie, min.dist = 150, ptime = 12, psi = 0)
+fkf <- fit_ssm(ellie, ptime = 12, psi = 0)
 
 ## fit KFp measurement error model
-fkfp <- fit_ssm(ellie, min.dist = 150, ptime = 12, psi = 1)
+fkfp <- fit_ssm(ellie, ptime = 12, psi = 1)
 
 ## fit LS measurement error model
-fls <- fit_ssm(ellie[, 1:5], min.dist = 150, ptime = 12)
+fls <- fit_ssm(ellie[, 1:5], ptime = 12)
 }
 }

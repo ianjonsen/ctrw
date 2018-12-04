@@ -1,7 +1,7 @@
 Package: ctrw
 Type: Package
 Title: a Continuous-Time Random Walk state-space model to filter Argos Least Squares or Kalman Filter location data
-Version: 0.1.0.9710
+Version: 0.1.0.9750
 Authors@R: c(
     person("Ian", "Jonsen", email = "ian.jonsen@mq.edu.au", 
     role = c("aut", "cre")),
@@ -17,12 +17,13 @@ LazyData: true
 RoxygenNote: 6.1.0
 Suggests: tidyverse,
     lubridate
-Imports: 
+Imports:
     TMB,
     dplyr,
     tibble,
     sp,
-    rgdal
+    rgdal,
+    argosfilter
 LinkingTo: TMB,
     RcppEigen
-Remotes:     hadley/multidplyr
+Remotes: hadley/multidplyr

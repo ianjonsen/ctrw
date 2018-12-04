@@ -11,18 +11,18 @@
 ##' @details Internal function
 ##'
 ##' @param d input data - must have 5 (LS), or 8 (KF) columns (see details)
-##' @param span degree of loess smoothing (range: 0 - 1) to identify potential outliers
+##' @param vmax max travel rate (m/s) passed to argosfilter::sdafilter to define outlier locations
 ##' @param min.dt minimum allowable time difference between observations; dt < min.dt will be ignored by the SSM
-##' @param min.dist minimum distance from track to define potential outlier locations
 ##' @param time.gap not currently implemented
 ##' @importFrom lubridate ymd_hms
 ##' @importFrom stats loess
 ##' @importFrom dplyr mutate distinct arrange filter select %>% left_join lag
 ##' @importFrom rgdal project
+##' @importFrom argosfilter sdafilter
 ##'
 ##' @export
 
-prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NULL) {
+prefilter <- function(d, vmax = 10, min.dt = 60, time.gap = NULL) {
 
   # check input data
   if(!ncol(d) %in% c(5,8)) stop("Data can only have 5 (for LS data) or 8 (for KF data) columns")
@@ -57,6 +57,11 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
     mutate(keep = ifelse(is.na(keep), TRUE, keep)) %>%
     arrange(order(date)) %>%
     mutate(lc = factor(lc, levels = c(3,2,1,0,"A","B","Z"), ordered = TRUE))
+
+  ## Use argosfilter::sdafilter to identify outlier locations
+  filt <- sdafilter(d$lat, d$lon, d$date, d$lc, ang=-1, vmax=vmax)
+  d <- d %>%
+    mutate(keep = ifelse(filt == "removed", FALSE, keep))
 
   if(min(d$lon, na.rm = TRUE) < 0 & diff(range(d$lon, na.rm = TRUE)) > 350) {
     d <- d %>%
@@ -113,45 +118,6 @@ prefilter <- function(d, span = 0.01, min.dt = 60, min.dist = 100, time.gap = NU
              mutate(smaj = smaj / 1000, smin = smin / 1000) %>%
              mutate(eor = eor / 180 * pi)
          })
-
-
-  ## use loess smooth to identify outliers by distance (faster than speed filters)
-  lo.x <-
-    try(loess(
-      x ~ as.numeric(date),
-      data = d,
-      span = span,
-      na.action = "na.exclude",
-      control = loess.control(surface = "direct")
-    ), silent = TRUE)
-  if(class(lo.x) != "try-error") res.x <- lo.x$residuals
-
-  lo.y <-
-    try(loess(
-      y ~ as.numeric(date),
-      data = d,
-      span = span,
-      na.action = "na.exclude",
-      control = loess.control(surface = "direct")
-    ), silent = TRUE)
-  if(class(lo.y) != "try-error") res.y <- lo.y$residuals
-
-  if(class(lo.x) != "try-error" & class(lo.y) != "try-error") {
- ## flag extreme outlier locations, if residuals > min.dist, to be ignored by SSM filter
-  d <- d %>%
-    mutate(keep = ifelse((
-      (res.x <= quantile(res.x, 0.01) |
-        res.x >= quantile(res.x, 0.99)) & abs(res.x) > min.dist
-    ) |
-      (
-        (res.y <= quantile(res.y, 0.01) |
-          res.y >= quantile(res.y, 0.99)) &
-          abs(res.y) > min.dist
-      ),
-    FALSE,
-    keep
-    ))
-  }
 
   f1 <- sum(!d$keep) - f
 #  cat(sprintf("%d potential outlier locations with residuals > %d km will be ignored \n", f1, min.dist))
