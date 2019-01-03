@@ -280,7 +280,7 @@ sfilter <-
     if (optim == "nlminb") {
       aic <- 2 * length(opt[["par"]]) + 2 * opt[["objective"]]
     } else {
-      aic <- aic <- 2 * length(opt[["par"]]) + 2 * opt[["value"]]
+      aic <- 2 * length(opt[["par"]]) + 2 * opt[["value"]]
     }
     out <- list(
       call = call,
