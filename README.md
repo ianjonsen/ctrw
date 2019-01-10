@@ -1,7 +1,8 @@
 # ctrw
 
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip)
-[![Travis-CI Build Status](https://travis-ci.org/ianjonsen/ctrw.svg?branch=master)](https://travis-ci.org/ianjonsen/ctrw)
+[![Project Status: Abandoned – Initial development has started, but there has not yet been a stable, usable release; the project has been abandoned and the author(s) do not intend on continuing development.](https://www.repostatus.org/badges/latest/abandoned.svg)](https://www.repostatus.org/#abandoned)
+
+# This package has been merged into [`foieGras`](https://github.com/ianjonsen/foieGras) all future development will happen there
 
 **ctrw** - a Continuous-Time Random Walk state-space model to filter Argos Least Squares or Kalman Filter location data
 
